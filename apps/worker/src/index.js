@@ -2645,6 +2645,57 @@ function invitePage(token, errorMsg, creatorName) {
 }
 
 /**
+ * One-time migration of a household's legacy KV recipes + meal plan into Supabase.
+ * Runs on the first authenticated request once the schema is live. Idempotent two ways:
+ *   1. a KV marker (h:{hid}:sbmigrated) makes it a true one-shot per household;
+ *   2. it only migrates when the recipes table is currently empty for the household.
+ * Safe before the schema exists: the count query fails → we return without marking,
+ * so it simply retries on a later request. Never resets real data to defaults.
+ */
+async function migrateKvToSupabase(env, hid, token, kvRecipes, kvPlan) {
+  if (!hid) return;
+  const marker = 'h:' + hid + ':sbmigrated';
+  try {
+    if (await env.KV.get(marker)) return;                              // already migrated
+    const head = await supabase(env, 'recipes?household_id=eq.' + hid + '&select=id&limit=1', {}, token);
+    if (!head.ok) return;                                              // schema not live yet → retry later
+    const existing = await head.json();
+    if (existing.length > 0) { await env.KV.put(marker, '1'); return; } // household already has DB data
+
+    const migratedIds = new Set();
+    if (Array.isArray(kvRecipes) && kvRecipes.length) {
+      const rows = kvRecipes.map(r => {
+        migratedIds.add(r.id);
+        const isUrl = (r.image || '').indexOf('http') === 0;
+        return { id: r.id, household_id: hid, name: r.name || '', emoji: isUrl ? null : (r.image || null),
+                 photo_url: isUrl ? r.image : null, servings: r.servings || 2, ingredients: r.ingredients || [] };
+      });
+      await supabase(env, 'recipes', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows) }, token);
+    }
+    if (kvPlan && typeof kvPlan === 'object') {
+      const rows = [];
+      for (const week of Object.keys(kvPlan)) {
+        if (!/^\d{4}-W\d{2}$/.test(week)) continue;                    // only week-keyed entries
+        const days = kvPlan[week] || {};
+        for (const day of Object.keys(days)) {
+          const slots = days[day] || {};
+          for (const slot of Object.keys(slots)) {
+            const m = slots[slot] || {};
+            if (!m.name && !m.detail) continue;                        // skip empty slots
+            const rid = (m.recipeId || m.recipe_id);
+            rows.push({ household_id: hid, week_key: week, day, slot, name: m.name || '', detail: m.detail || '',
+                        type: m.type || 'free', time: m.time || '', recipe_id: migratedIds.has(rid) ? rid : null });
+          }
+        }
+      }
+      if (rows.length) await supabase(env, 'meal_plans', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows) }, token);
+    }
+    await env.KV.put(marker, '1');
+    console.log('migrated KV recipes/plan to Supabase for household ' + hid);
+  } catch (e) { /* leave marker unset → retry on a later request */ }
+}
+
+/**
  * Build the full client state: KV holds the live shopping list; Supabase holds
  * recipes + the weekly meal plan. We read KV and overlay the Supabase data so
  * mobile + web clients still get everything in a single /api/state response.
@@ -2657,6 +2708,8 @@ async function mergedState(env, skey, hid, token) {
     if (legacy) { await env.KV.put(skey, legacy); raw = legacy; }
   }
   const s = raw ? JSON.parse(raw) : { checked: {}, manualItems: [], prices: {}, itemOverrides: {}, manualHistory: [], resetAt: null };
+  // one-time: lift legacy KV recipes + plan into Supabase before we overlay from it
+  await migrateKvToSupabase(env, hid, token, s.recipes, s.plan);
   // recipes + plan come from Supabase, not KV
   s.plan = {};
   s.recipes = [];
