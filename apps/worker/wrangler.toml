@@ -2,6 +2,11 @@ name = "nutripair"
 main = "src/index.js"
 compatibility_date = "2024-06-01"
 
+[vars]
+SUPABASE_URL = "https://ywnrldatynuubugkgxil.supabase.co"
+# SUPABASE_ANON_KEY is a wrangler secret, not a var:
+#   cd apps/worker && npx wrangler secret put SUPABASE_ANON_KEY
+
 [[kv_namespaces]]
 binding = "KV"
 id = "7915d6990b1e4958b43596866ec8604b"

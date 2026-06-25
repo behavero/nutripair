@@ -2423,47 +2423,142 @@ function fetchState(){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  AUTH  (PBKDF2-SHA256 + random KV-backed sessions — crypto.subtle + KV only)
+//  AUTH  (Supabase Auth — ES256 JWT validation via JWKS + crypto.subtle; REST via fetch)
 // ─────────────────────────────────────────────────────────────────────────────
 function toHex(u8) { return Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join(''); }
-function fromHex(hex) { const a = new Uint8Array(hex.length / 2); for (let i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i * 2, 2), 16); return a; }
-// constant-time string compare (equal-length hex)
-function timingSafeEqual(a, b) { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; }
 
-const PBKDF2_ITER = 100000;
-async function pbkdf2Bits(password, saltBytes, iterations) {
-  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' }, km, 256);
-  return new Uint8Array(bits);
+// ── base64url decode ──
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
-// stored format: pbkdf2$<iterations>$<saltHex>$<hashHex>
-async function hashPassword(password) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await pbkdf2Bits(password, salt, PBKDF2_ITER);
-  return 'pbkdf2$' + PBKDF2_ITER + '$' + toHex(salt) + '$' + toHex(hash);
+function b64urlToString(s) { return new TextDecoder().decode(b64urlToBytes(s)); }
+
+// ── JWKS cache (this project signs with ES256) — survives between requests in the same isolate ──
+let JWKS_KEYS = null;
+async function getJwks(env) {
+  if (JWKS_KEYS) return JWKS_KEYS;
+  const res = await fetch(env.SUPABASE_URL + '/auth/v1/.well-known/jwks.json');
+  if (!res.ok) throw new Error('jwks fetch failed');
+  const data = await res.json();
+  const keys = {};
+  for (const jwk of (data.keys || [])) {
+    const importAlgo = jwk.kty === 'EC'
+      ? { name: 'ECDSA', namedCurve: jwk.crv || 'P-256' }
+      : { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' };
+    keys[jwk.kid] = { key: await crypto.subtle.importKey('jwk', jwk, importAlgo, false, ['verify']), kty: jwk.kty };
+  }
+  JWKS_KEYS = keys;
+  return keys;
 }
-async function verifyPassword(password, stored) {
-  const p = (stored || '').split('$');
-  if (p.length !== 4 || p[0] !== 'pbkdf2') return false;
-  const hash = toHex(await pbkdf2Bits(password, fromHex(p[2]), parseInt(p[1], 10)));
-  return timingSafeEqual(hash, p[3]);
+// Validate a Supabase access token locally. Returns the JWT payload, or null.
+async function verifyJwt(token, env) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const header  = JSON.parse(b64urlToString(parts[0]));
+    const payload = JSON.parse(b64urlToString(parts[1]));
+    if (payload.exp && payload.exp * 1000 <= Date.now()) return null;          // expired
+    let keys = await getJwks(env);
+    let entry = keys[header.kid];
+    if (!entry) { JWKS_KEYS = null; keys = await getJwks(env); entry = keys[header.kid]; } // key rotation
+    if (!entry) return null;
+    const verifyAlgo = entry.kty === 'EC' ? { name: 'ECDSA', hash: 'SHA-256' } : { name: 'RSASSA-PKCS1-v1_5' };
+    const ok = await crypto.subtle.verify(verifyAlgo, entry.key,
+      b64urlToBytes(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+    return ok ? payload : null;
+  } catch (e) { return null; }
 }
 
-function newSessionId() { return toHex(crypto.getRandomValues(new Uint8Array(32))); }
-const SESSION_TTL = 2592000; // 30 days (seconds)
-function sessionCookie(sid) { return 'session=' + sid + '; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=' + SESSION_TTL; }
-function clearSessionCookie() { return 'session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'; }
-function cookieSessionId(request) { const c = request.headers.get('Cookie') || ''; const m = c.match(/(?:^|;\s*)session=([a-f0-9]+)/); return m ? m[1] : null; }
-// → { userId, householdId } or null
-async function getSession(request, env) {
-  const sid = cookieSessionId(request);
-  if (!sid) return null;
-  const raw = await env.KV.get('sess:' + sid);
-  if (!raw) return null;
-  try { const s = JSON.parse(raw); if (s.expiresAt && s.expiresAt < Date.now()) return null; s.sid = sid; return s; } catch (e) { return null; }
+// ── cookies ──
+function cookieVal(request, name) {
+  const c = request.headers.get('Cookie') || '';
+  const m = c.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? m[1] : null;
+}
+const AUTH_MAXAGE = 604800; // 7 days
+function setCookie(name, val) { return name + '=' + val + '; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=' + AUTH_MAXAGE; }
+function clearCookie(name)    { return name + '=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0'; }
+function sessionCookies(access, refresh) { return [ setCookie('sb-access-token', access), setCookie('sb-refresh-token', refresh || '') ]; }
+
+// ── Supabase REST + GoTrue helpers (fetch only, no SDK) ──
+function supabase(env, path, options, token) {
+  const o = options || {};
+  return fetch(env.SUPABASE_URL + '/rest/v1/' + path, {
+    method: o.method || 'GET',
+    headers: Object.assign({
+      'apikey': env.SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + (token || env.SUPABASE_ANON_KEY),
+      'Content-Type': 'application/json',
+      'Prefer': o.prefer || 'return=representation'
+    }, o.headers || {}),
+    body: o.body
+  });
+}
+function gotrue(env, path, body) {
+  return fetch(env.SUPABASE_URL + '/auth/v1/' + path, {
+    method: 'POST',
+    headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
 }
 
-function redirectRes(location, cookie) { const h = { 'Location': location }; if (cookie) h['Set-Cookie'] = cookie; return new Response(null, { status: 302, headers: h }); }
+// userId → { householdId, name, lang, currency } short-lived isolate cache
+const PROFILE_CACHE = new Map();
+function clearProfileCache(userId) { PROFILE_CACHE.delete(userId); }
+async function profileFor(userId, token, env) {
+  const c = PROFILE_CACHE.get(userId);
+  if (c && (Date.now() - c.at) < 30000) return c;
+  const r = await supabase(env, 'profiles?id=eq.' + userId + '&select=household_id,name,lang,currency', {}, token);
+  if (!r.ok) return null;
+  const rows = await r.json();
+  if (!rows[0]) return null;
+  const rec = { householdId: rows[0].household_id, name: rows[0].name, lang: rows[0].lang, currency: rows[0].currency, at: Date.now() };
+  PROFILE_CACHE.set(userId, rec);
+  return rec;
+}
+// Validate the request's access token → { userId, email, name, householdId, token } or null.
+async function getUser(request, env) {
+  let token = cookieVal(request, 'sb-access-token');
+  const auth = request.headers.get('Authorization');
+  if (!token && auth && auth.indexOf('Bearer ') === 0) token = auth.slice(7);
+  if (!token) return null;
+  const payload = await verifyJwt(token, env);
+  if (!payload || !payload.sub) return null;
+  const prof = await profileFor(payload.sub, token, env);
+  return {
+    userId: payload.sub,
+    email: payload.email,
+    name: (prof && prof.name) || (payload.user_metadata && payload.user_metadata.name) || 'Membre',
+    householdId: prof ? prof.householdId : null,
+    token
+  };
+}
+// Exchange a refresh token for a fresh session. Returns { access_token, refresh_token } or null.
+async function refreshSession(request, env) {
+  const rt = cookieVal(request, 'sb-refresh-token');
+  if (!rt) return null;
+  const res = await gotrue(env, 'token?grant_type=refresh_token', { refresh_token: rt });
+  if (!res.ok) return null;
+  try { return await res.json(); } catch (e) { return null; }
+}
+
+function redirectRes(location, cookies) {
+  const h = new Headers({ 'Location': location });
+  (Array.isArray(cookies) ? cookies : (cookies ? [cookies] : [])).forEach(c => h.append('Set-Cookie', c));
+  return new Response(null, { status: 302, headers: h });
+}
+// attach freshly-rotated session cookies to any Response (used after a silent refresh)
+function withCookies(resp, cookies) {
+  if (!cookies || !cookies.length) return resp;
+  const h = new Headers(resp.headers);
+  cookies.forEach(c => h.append('Set-Cookie', c));
+  return new Response(resp.body, { status: resp.status, headers: h });
+}
 function jsonRes(obj, status, extra) { return new Response(JSON.stringify(obj), { status: status || 200, headers: Object.assign({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, extra || {}) }); }
 function htmlRes(html) { return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } }); }
 // only allow same-origin relative paths as redirect targets
@@ -2549,6 +2644,41 @@ function invitePage(token, errorMsg, creatorName) {
 </body></html>`;
 }
 
+/**
+ * Build the full client state: KV holds the live shopping list; Supabase holds
+ * recipes + the weekly meal plan. We read KV and overlay the Supabase data so
+ * mobile + web clients still get everything in a single /api/state response.
+ * @returns {Object} { checked, manualItems, prices, itemOverrides, manualHistory, resetAt, recipes, plan }
+ */
+async function mergedState(env, skey, hid, token) {
+  let raw = await env.KV.get(skey);
+  if (!raw) {                                   // one-time legacy KV migration (shopping fields only)
+    const legacy = await env.KV.get('state');
+    if (legacy) { await env.KV.put(skey, legacy); raw = legacy; }
+  }
+  const s = raw ? JSON.parse(raw) : { checked: {}, manualItems: [], prices: {}, itemOverrides: {}, manualHistory: [], resetAt: null };
+  // recipes + plan come from Supabase, not KV
+  s.plan = {};
+  s.recipes = [];
+  try {
+    const rr = await supabase(env, 'recipes?household_id=eq.' + hid + '&select=*&order=created_at', {}, token);
+    if (rr.ok) s.recipes = (await rr.json()).map(r => ({
+      id: r.id, name: r.name, image: r.photo_url || r.emoji || '', servings: r.servings, ingredients: r.ingredients || []
+    }));
+  } catch (e) {}
+  try {
+    const mr = await supabase(env, 'meal_plans?household_id=eq.' + hid + '&select=*', {}, token);
+    if (mr.ok) for (const row of await mr.json()) {
+      if (!s.plan[row.week_key]) s.plan[row.week_key] = {};
+      if (!s.plan[row.week_key][row.day]) s.plan[row.week_key][row.day] = {};
+      s.plan[row.week_key][row.day][row.slot] = {
+        name: row.name || '', detail: row.detail || '', type: row.type || 'free', time: row.time || '', recipeId: row.recipe_id || null
+      };
+    }
+  } catch (e) {}
+  return s;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  WORKER HANDLER
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2559,12 +2689,12 @@ export default {
     const method = request.method;
     const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 
-    // ══════════════════ PUBLIC AUTH ROUTES (no session) ══════════════════
+    // ══════════════════ PUBLIC AUTH ROUTES (delegated to Supabase) ══════════════════
 
     // GET /login — login / register page
     if (path === '/login' && method === 'GET') return htmlRes(buildLoginHTML(url));
 
-    // POST /auth/register {email, password, name}
+    // POST /auth/register {email, password, name} → Supabase signup (trigger provisions household+profile)
     if (path === '/auth/register' && method === 'POST') {
       const b = await parseBody(request);
       const email = (b.email || '').trim().toLowerCase();
@@ -2573,123 +2703,125 @@ export default {
       const next = safeNext(b.next);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return redirectRes('/login?mode=register&error=email');
       if (password.length < 8) return redirectRes('/login?mode=register&error=password');
-      if (await env.KV.get('u:email:' + email)) return redirectRes('/login?mode=register&error=exists'); // 409
-      const userId = crypto.randomUUID();
-      const householdId = crypto.randomUUID();
-      const passwordHash = await hashPassword(password);
-      const now = new Date().toISOString();
-      await env.KV.put('u:' + userId, JSON.stringify({ email, passwordHash, name, householdId, lang: 'fr', currency: 'RON', createdAt: now }));
-      await env.KV.put('u:email:' + email, userId);
-      await env.KV.put('h:' + householdId, JSON.stringify({ id: householdId, members: [{ userId, name }], createdAt: now }));
-      const sid = newSessionId();
-      await env.KV.put('sess:' + sid, JSON.stringify({ userId, householdId, expiresAt: Date.now() + SESSION_TTL * 1000 }), { expirationTtl: SESSION_TTL });
-      return redirectRes(next, sessionCookie(sid));
+      const res = await gotrue(env, 'signup', { email, password, data: { name } });
+      if (!res.ok) return redirectRes('/login?mode=register&error=exists');
+      let data = {}; try { data = await res.json(); } catch (e) {}
+      // Email-confirmation OFF → session returned immediately; ON → user must confirm first.
+      if (data.access_token) return redirectRes(next, sessionCookies(data.access_token, data.refresh_token));
+      return redirectRes('/login?pending=1');
     }
 
-    // POST /auth/login {email, password}
+    // POST /auth/login {email, password} → Supabase password grant
     if (path === '/auth/login' && method === 'POST') {
       const b = await parseBody(request);
       const email = (b.email || '').trim().toLowerCase();
-      const password = b.password || '';
       const next = safeNext(b.next);
-      const userId = await env.KV.get('u:email:' + email);
-      const uraw = userId ? await env.KV.get('u:' + userId) : null;
-      if (!uraw) return redirectRes('/login?error=creds');            // 401
-      const u = JSON.parse(uraw);
-      if (!(await verifyPassword(password, u.passwordHash))) return redirectRes('/login?error=creds'); // 401, constant-time
-      const sid = newSessionId();
-      await env.KV.put('sess:' + sid, JSON.stringify({ userId, householdId: u.householdId, expiresAt: Date.now() + SESSION_TTL * 1000 }), { expirationTtl: SESSION_TTL });
-      return redirectRes(next, sessionCookie(sid));
+      const res = await gotrue(env, 'token?grant_type=password', { email, password: b.password || '' });
+      if (!res.ok) return redirectRes('/login?error=creds');
+      let data = {}; try { data = await res.json(); } catch (e) {}
+      if (!data.access_token) return redirectRes('/login?error=creds');
+      return redirectRes(next, sessionCookies(data.access_token, data.refresh_token));
     }
 
-    // POST /auth/logout
+    // POST /auth/logout → revoke at Supabase + clear cookies
     if (path === '/auth/logout' && method === 'POST') {
-      const sid = cookieSessionId(request);
-      if (sid) await env.KV.delete('sess:' + sid);
-      return redirectRes('/login', clearSessionCookie());
+      const token = cookieVal(request, 'sb-access-token');
+      if (token) { try { await fetch(env.SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token } }); } catch (e) {} }
+      return redirectRes('/login', [clearCookie('sb-access-token'), clearCookie('sb-refresh-token')]);
     }
 
-    // GET /auth/me → current user JSON (self-authenticating)
+    // GET /auth/me → current user JSON (from profiles)
     if (path === '/auth/me' && method === 'GET') {
-      const s = await getSession(request, env);
-      if (!s) return jsonRes({ error: 'unauthorized' }, 401);
-      const uraw = await env.KV.get('u:' + s.userId);
-      if (!uraw) return jsonRes({ error: 'no_user' }, 404);
-      const u = JSON.parse(uraw);
+      const u = await getUser(request, env);
+      if (!u) return jsonRes({ error: 'unauthorized' }, 401);
+      const prof = await profileFor(u.userId, u.token, env);
       let members = [];
-      const hraw = await env.KV.get('h:' + s.householdId);
-      if (hraw) { try { members = (JSON.parse(hraw).members) || []; } catch (e) {} }
-      return jsonRes({ userId: s.userId, name: u.name, email: u.email, householdId: u.householdId, lang: u.lang || 'fr', currency: u.currency || 'RON', members });
+      if (prof && prof.householdId) {
+        const mr = await supabase(env, 'profiles?household_id=eq.' + prof.householdId + '&select=id,name', {}, u.token);
+        if (mr.ok) members = (await mr.json()).map(m => ({ userId: m.id, name: m.name }));
+      }
+      return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', members });
     }
 
-    // /invite/{token}  (GET = accept page, POST .../accept = join). Self-authenticating.
+    // /invite/{token}  (GET = accept page, POST .../accept = join). Backed by invitations table.
     if (path.indexOf('/invite/') === 0) {
       const acceptMatch = path.match(/^\/invite\/([^\/]+)\/accept$/);
       if (acceptMatch && method === 'POST') {
         const token = acceptMatch[1];
-        const s = await getSession(request, env);
-        if (!s) return redirectRes('/login?next=' + encodeURIComponent('/invite/' + token));
-        const iraw = await env.KV.get('inv:' + token);
-        if (!iraw) return redirectRes('/?error=invite_invalid');
-        const inv = JSON.parse(iraw);
-        if (inv.used || inv.expiresAt < Date.now()) return redirectRes('/?error=invite_expired');
-        const hraw = await env.KV.get('h:' + inv.householdId);
-        const h = hraw ? JSON.parse(hraw) : { id: inv.householdId, members: [], createdAt: new Date().toISOString() };
-        const uraw = await env.KV.get('u:' + s.userId);
-        const u = uraw ? JSON.parse(uraw) : {};
-        if (!(h.members || []).some(m => m.userId === s.userId)) { h.members = h.members || []; h.members.push({ userId: s.userId, name: u.name || 'Membre' }); }
-        await env.KV.put('h:' + inv.householdId, JSON.stringify(h));
-        u.householdId = inv.householdId;
-        await env.KV.put('u:' + s.userId, JSON.stringify(u));
-        if (s.sid) await env.KV.put('sess:' + s.sid, JSON.stringify({ userId: s.userId, householdId: inv.householdId, expiresAt: Date.now() + SESSION_TTL * 1000 }), { expirationTtl: SESSION_TTL });
-        inv.used = true;
-        await env.KV.put('inv:' + token, JSON.stringify(inv));
+        const u = await getUser(request, env);
+        if (!u) return redirectRes('/login?next=' + encodeURIComponent('/invite/' + token));
+        const ir = await supabase(env, 'invitations?token=eq.' + encodeURIComponent(token) + '&select=*', {}, u.token);
+        if (!ir.ok) return redirectRes('/?error=invite_invalid');
+        const inv = (await ir.json())[0];
+        if (!inv || inv.used || new Date(inv.expires_at).getTime() < Date.now()) return redirectRes('/?error=invite_expired');
+        // Join: repoint my profile at the inviter's household, then burn the token.
+        await supabase(env, 'profiles?id=eq.' + u.userId, { method: 'PATCH', body: JSON.stringify({ household_id: inv.household_id }) }, u.token);
+        await supabase(env, 'invitations?id=eq.' + inv.id, { method: 'PATCH', body: JSON.stringify({ used: true }) }, u.token);
+        clearProfileCache(u.userId);
         return redirectRes('/');
       }
       if (method === 'GET') {
         const token = path.slice('/invite/'.length).replace(/\/.*$/, '');
-        const s = await getSession(request, env);
-        if (!s) return redirectRes('/login?next=' + encodeURIComponent('/invite/' + token));
-        const iraw = await env.KV.get('inv:' + token);
-        if (!iraw) return htmlRes(invitePage(null, 'Lien d\'invitation invalide.'));
-        const inv = JSON.parse(iraw);
-        if (inv.used || inv.expiresAt < Date.now()) return htmlRes(invitePage(null, 'Cette invitation a expiré ou a déjà été utilisée.'));
+        const u = await getUser(request, env);
+        if (!u) return redirectRes('/login?next=' + encodeURIComponent('/invite/' + token));
+        const ir = await supabase(env, 'invitations?token=eq.' + encodeURIComponent(token) + '&select=*', {}, u.token);
+        if (!ir.ok) return htmlRes(invitePage(null, 'Lien d\'invitation invalide.'));
+        const inv = (await ir.json())[0];
+        if (!inv || inv.used || new Date(inv.expires_at).getTime() < Date.now()) return htmlRes(invitePage(null, 'Cette invitation a expiré ou a déjà été utilisée.'));
         let creatorName = 'votre partenaire';
-        const hraw = await env.KV.get('h:' + inv.householdId);
-        if (hraw) { const h = JSON.parse(hraw); const c = (h.members || []).find(m => m.userId === inv.createdBy); if (c) creatorName = c.name; }
+        const cr = await supabase(env, 'profiles?id=eq.' + inv.created_by + '&select=name', {}, u.token);
+        if (cr.ok) { const c = await cr.json(); if (c[0]) creatorName = c[0].name; }   // null if cross-household (RLS) → fallback
         return htmlRes(invitePage(token, null, creatorName));
       }
     }
 
-    // ══════════════════ AUTH GATE ══════════════════
+    // ══════════════════ AUTH GATE (Supabase JWT, with silent refresh) ══════════════════
     // Public PWA assets stay open so install/icon works pre-login.
     const PUBLIC_ASSET = (path === '/manifest.json' || path === '/icon.svg');
-    const session = PUBLIC_ASSET ? null : await getSession(request, env);
-    if (!PUBLIC_ASSET && !session) {
+    let user = PUBLIC_ASSET ? null : await getUser(request, env);
+    let refreshedCookies = null;
+    if (!PUBLIC_ASSET && !user) {
+      const rs = await refreshSession(request, env);                 // access token expired? try the refresh token
+      if (rs && rs.access_token) {
+        const payload = await verifyJwt(rs.access_token, env);
+        if (payload && payload.sub) {
+          const prof = await profileFor(payload.sub, rs.access_token, env);
+          user = { userId: payload.sub, email: payload.email, name: (prof && prof.name) || 'Membre', householdId: prof ? prof.householdId : null, token: rs.access_token };
+          refreshedCookies = sessionCookies(rs.access_token, rs.refresh_token);   // rotated → must persist on this response
+        }
+      }
+    }
+    if (!PUBLIC_ASSET && !user) {
       if (path.indexOf('/api/') === 0) return jsonRes({ error: 'unauthorized' }, 401);
       return redirectRes('/login');
     }
-    const HID  = session ? session.householdId : null;
-    const SKEY = HID ? ('h:' + HID + ':state') : 'state';
+    const HID   = user ? user.householdId : null;
+    const SKEY  = HID ? ('h:' + HID + ':state') : 'state';
+    const TOKEN = user ? user.token : null;
+    const UID   = user ? user.userId : null;
 
-    // POST /api/invite/create  (auth) → returns { inviteUrl }
+    // Everything below is authed; wrap so a silently-refreshed session is persisted on any response.
+    const resp = await (async () => {
+
+    // POST /api/invite/create  (auth) → INSERT invitations, return { inviteUrl }
     if (path === '/api/invite/create' && method === 'POST') {
       const token = toHex(crypto.getRandomValues(new Uint8Array(32)));
-      const EXP = 7 * 86400;
-      await env.KV.put('inv:' + token, JSON.stringify({ householdId: HID, createdBy: session.userId, expiresAt: Date.now() + EXP * 1000, used: false }), { expirationTtl: EXP });
+      const expires = new Date(Date.now() + 7 * 86400 * 1000).toISOString();
+      const r = await supabase(env, 'invitations', { method: 'POST', body: JSON.stringify({ token, household_id: HID, created_by: UID, expires_at: expires, used: false }) }, TOKEN);
+      if (!r.ok) return jsonRes({ error: 'invite_failed' }, 500);
       return jsonRes({ inviteUrl: url.origin + '/invite/' + token });
     }
 
-    // POST /api/user/prefs {lang?, currency?}  (auth)
+    // POST /api/user/prefs {lang?, currency?}  (auth) → PATCH profiles
     if (path === '/api/user/prefs' && method === 'POST') {
       const b = await parseBody(request);
-      const uraw = await env.KV.get('u:' + session.userId);
-      if (!uraw) return jsonRes({ error: 'no_user' }, 404);
-      const u = JSON.parse(uraw);
-      if (b.lang) u.lang = b.lang;
-      if (b.currency) u.currency = b.currency;
-      await env.KV.put('u:' + session.userId, JSON.stringify(u));
-      return jsonRes({ ok: true, lang: u.lang, currency: u.currency });
+      const patch = {};
+      if (b.lang) patch.lang = b.lang;
+      if (b.currency) patch.currency = b.currency;
+      const r = await supabase(env, 'profiles?id=eq.' + UID, { method: 'PATCH', body: JSON.stringify(patch) }, TOKEN);
+      clearProfileCache(UID);
+      if (!r.ok) return jsonRes({ error: 'prefs_failed' }, 500);
+      return jsonRes({ ok: true, lang: b.lang, currency: b.currency });
     }
 
     /**
@@ -2749,23 +2881,11 @@ export default {
 
     /**
      * GET /api/state
-     * Read the shared KV state. Seeds DEFAULT_STATE on first ever request and
-     * auto-migrates an old flat plan to the week-keyed shape (one-time, in place).
-     * @returns {Object} the full state object: { checked, manualItems, plan, resetAt }
+     * KV shopping state + Supabase recipes + Supabase meal plans, merged into one
+     * response so mobile + web clients get everything in a single call.
      */
     if (path === '/api/state' && request.method === 'GET') {
-      let raw = await env.KV.get(SKEY);
-      // One-time, idempotent migration: copy the legacy global 'state' into this
-      // household the first time it's read (safe to keep forever).
-      if (!raw) {
-        const legacy = await env.KV.get('state');
-        if (legacy) { await env.KV.put(SKEY, legacy); raw = legacy; console.log('migrated legacy state to household ' + HID); }
-      }
-      const s   = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
-      let changed = !raw;
-      if (migratePlanShape(s)) changed = true;   // wrap a legacy plan under the current week
-      if (changed) await env.KV.put(SKEY, JSON.stringify(s));
-      return new Response(JSON.stringify(s), {headers: cors});
+      return new Response(JSON.stringify(await mergedState(env, SKEY, HID, TOKEN)), {headers: cors});
     }
 
     /**
@@ -2793,6 +2913,25 @@ export default {
     if (path === '/api/reset' && request.method === 'POST') {
       const raw = await env.KV.get(SKEY);
       const s   = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
+      // Snapshot the finished shop to shopping_history (analytics + Budget view) before clearing.
+      try {
+        const checked = s.checked || {}, prices = s.prices || {};
+        const catalog = {};
+        for (const sec of GROCERY_DATA) for (const it of sec.items) catalog[it.id] = it.price;
+        let itemsTotal = (s.manualItems || []).length;
+        for (const sec of GROCERY_DATA) itemsTotal += sec.items.length;
+        let spent = 0;
+        for (const id of Object.keys(checked)) {
+          const p = (prices[id] !== undefined) ? prices[id] : (catalog[id] || 0);
+          if (typeof p === 'number') spent += p;
+        }
+        await supabase(env, 'shopping_history', { method: 'POST', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({
+          household_id: HID, reset_at: new Date().toISOString(),
+          items_checked: Object.keys(checked).length, items_total: itemsTotal,
+          total_spent: spent, currency: 'RON',
+          snapshot: { checked, manualItems: s.manualItems || [], prices }
+        }) }, TOKEN);
+      } catch (e) {}
       s.checked = {}; s.resetAt = new Date().toISOString();
       await env.KV.put(SKEY, JSON.stringify(s));
       return new Response(JSON.stringify(s), {headers: cors});
@@ -2903,74 +3042,66 @@ export default {
      */
     if (path === '/api/update-meal' && request.method === 'POST') {
       const body = await request.json();
-      const raw  = await env.KV.get(SKEY);
-      const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
-      migratePlanShape(s);                                  // ensure week-keyed shape
-      if (!s.plan || typeof s.plan !== 'object') s.plan = {};
       const week = body.week || currentISOWeek();
-      if (!s.plan[week]) s.plan[week] = {};
-      if (!s.plan[week][body.day]) s.plan[week][body.day] = {};
-      s.plan[week][body.day][body.slot] = body.meal;
-      await env.KV.put(SKEY, JSON.stringify(s));
-      return new Response(JSON.stringify(s), {headers: cors});
+      const meal = body.meal || {};
+      const row = {
+        household_id: HID, week_key: week, day: body.day, slot: body.slot,
+        name: meal.name || '', detail: meal.detail || '', type: meal.type || 'free',
+        time: meal.time || '', recipe_id: meal.recipeId || null, updated_at: new Date().toISOString()
+      };
+      // upsert on the unique (household_id, week_key, day, slot)
+      const r = await supabase(env, 'meal_plans', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(row) }, TOKEN);
+      if (!r.ok) return jsonRes({ error: 'meal_failed' }, 500);
+      return new Response(JSON.stringify(await mergedState(env, SKEY, HID, TOKEN)), {headers: cors});
     }
 
     /**
-     * POST /api/save-recipe
-     * Upsert a recipe (by recipe.id) into state.recipes. On first write we seed
-     * state.recipes with DEFAULT_RECIPES (copy-on-write) so editing one default
-     * doesn't make the other defaults vanish.
-     * @body {{ recipe: { id, name, name_en, name_ro, servings, ingredients } }}
-     * @returns {Object} the updated state
+     * POST /api/save-recipe  → UPSERT into the recipes table (per household).
+     * @body {{ recipe: { id, name, image?, servings?, ingredients? } }}
      */
     if (path === '/api/save-recipe' && request.method === 'POST') {
       const body = await request.json();
-      const raw  = await env.KV.get(SKEY);
-      const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
-      if (!Array.isArray(s.recipes) || s.recipes.length === 0) {
-        s.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
-      }
-      const i = s.recipes.findIndex(r => r.id === body.recipe.id);
-      if (i >= 0) s.recipes[i] = body.recipe; else s.recipes.push(body.recipe);
-      await env.KV.put(SKEY, JSON.stringify(s));
-      return new Response(JSON.stringify(s), {headers: cors});
+      const r = body.recipe || {};
+      const isUrl = (r.image || '').indexOf('http') === 0;
+      const row = {
+        id: r.id, household_id: HID, name: r.name || '',
+        emoji: isUrl ? null : (r.image || null),
+        photo_url: isUrl ? r.image : null,
+        servings: r.servings || 2, ingredients: r.ingredients || [],
+        updated_at: new Date().toISOString()
+      };
+      const res = await supabase(env, 'recipes', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(row) }, TOKEN);
+      if (!res.ok) return jsonRes({ error: 'recipe_failed' }, 500);
+      return new Response(JSON.stringify(await mergedState(env, SKEY, HID, TOKEN)), {headers: cors});
     }
 
     /**
-     * POST /api/delete-recipe
-     * Remove a recipe by id from state.recipes (copy-on-write seed first, so the
-     * other defaults remain when deleting a default recipe).
+     * POST /api/delete-recipe  → DELETE from the recipes table (household-scoped).
      * @body {{ id: string }}
-     * @returns {Object} the updated state
      */
     if (path === '/api/delete-recipe' && request.method === 'POST') {
       const body = await request.json();
-      const raw  = await env.KV.get(SKEY);
-      const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
-      if (!Array.isArray(s.recipes) || s.recipes.length === 0) {
-        s.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
-      }
-      s.recipes = s.recipes.filter(r => r.id !== body.id);
-      await env.KV.put(SKEY, JSON.stringify(s));
-      return new Response(JSON.stringify(s), {headers: cors});
+      await supabase(env, 'recipes?id=eq.' + encodeURIComponent(body.id) + '&household_id=eq.' + HID, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } }, TOKEN);
+      return new Response(JSON.stringify(await mergedState(env, SKEY, HID, TOKEN)), {headers: cors});
     }
 
     /**
      * POST /api/recipe-to-cart
-     * For each ingredient of a recipe: if it maps to a GROCERY_DATA item, ensure
-     * it's unchecked (so it shows as "to buy"); otherwise add it to manualItems
-     * (deduped by name+section). Reads DEFAULT_RECIPES when state.recipes is empty.
+     * Pull a recipe's ingredients into the KV shopping list: catalogue items get
+     * un-checked (so they show as "to buy"), the rest are added as manual items.
+     * The recipe is read from Supabase (falling back to DEFAULT_RECIPES).
      * @body {{ id: string }}
-     * @returns {Object} the updated state
      */
     if (path === '/api/recipe-to-cart' && request.method === 'POST') {
       const body = await request.json();
-      const raw  = await env.KV.get(SKEY);
-      const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
+      let recipe = null;
+      const rr = await supabase(env, 'recipes?id=eq.' + encodeURIComponent(body.id) + '&household_id=eq.' + HID + '&select=*', {}, TOKEN);
+      if (rr.ok) { const rows = await rr.json(); if (rows[0]) recipe = { id: rows[0].id, ingredients: rows[0].ingredients || [] }; }
+      if (!recipe) recipe = DEFAULT_RECIPES.find(r => r.id === body.id);
+      const raw = await env.KV.get(SKEY);
+      const s   = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
       s.manualItems = s.manualItems || [];
       s.checked = s.checked || {};
-      const recipes = (Array.isArray(s.recipes) && s.recipes.length) ? s.recipes : DEFAULT_RECIPES;
-      const recipe = recipes.find(r => r.id === body.id);
       if (recipe && Array.isArray(recipe.ingredients)) {
         const gids = new Set();
         for (const sec of GROCERY_DATA) for (const it of sec.items) gids.add(it.id);
@@ -2988,9 +3119,11 @@ export default {
         });
       }
       await env.KV.put(SKEY, JSON.stringify(s));
-      return new Response(JSON.stringify(s), {headers: cors});
+      return new Response(JSON.stringify(await mergedState(env, SKEY, HID, TOKEN)), {headers: cors});
     }
 
     return new Response('Not found', {status:404});
+    })();
+    return withCookies(resp, refreshedCookies);
   }
 };
