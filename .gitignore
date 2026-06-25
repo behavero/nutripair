@@ -13,3 +13,4 @@ dist/
 # os / editor / tooling cruft
 .DS_Store
 .remember/
+.mcp.json
