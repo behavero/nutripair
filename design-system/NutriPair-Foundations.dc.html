@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #FEFAE0; }
+  ::selection { background: #C85A2A; color: #FFFFF5; }
+  @keyframes np-slide { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(56px); } }
+  @keyframes np-bounce { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-20px); } }
+  @keyframes np-fill { 0% { width: 6%; } 100% { width: 88%; } }
+  @keyframes np-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 320px 0; } }
+</style>
+</helmet>
+
+<div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #2C1810; background: #FEFAE0; min-height: 100vh; -webkit-font-smoothing: antialiased;">
+
+  <!-- ===== TOP NAV ===== -->
+  <nav style="position: sticky; top: 0; z-index: 50; background: #2C1810; box-shadow: 0 2px 14px rgba(44,24,16,0.28);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #C85A2A; display: inline-block;"></span>
+        <span style="font: 700 17px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">NutriPair</span>
+        <span style="font: 600 10px/1 system-ui; letter-spacing: 1.5px; text-transform: uppercase; color: #9C8166; margin-left: 6px;">Design System</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <a href="NutriPair-Foundations.dc.html" style="font: 600 13px/1 system-ui; color: #FEFAE0; text-decoration: none; padding: 8px 14px; border-radius: 9999px; background: #C85A2A;">Foundations</a>
+        <a href="NutriPair-Mobile.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Mobile PWA</a>
+        <a href="NutriPair-Web.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Web Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- This is the source design canvas authored on claude.ai/design. The tokens below
+       are implemented 1:1 in apps/worker/src/index.js buildCSS(). The interactive
+       swatch/scale grids render via dc-runtime (support.js) using the data in the
+       <script data-dc-script> block at the bottom — that data is the canonical token table. -->
+
+  <header style="max-width: 1120px; margin: 0 auto; padding: 64px 28px 24px;">
+    <div style="font: 700 11px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #C85A2A; margin-bottom: 18px;">Foundations &middot; v1.0</div>
+    <h1 style="font: 700 56px/1.02 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1.5px; margin: 0 0 20px; max-width: 16ch;">The warm, tactile system behind NutriPair.</h1>
+    <p style="font: 400 18px/1.6 system-ui; color: #7A5C4A; margin: 0; max-width: 60ch;">A 70s retro-modern kitchen system &mdash; vinyl-record warmth meets Italian-trattoria comfort &mdash; built for two people, Martin &amp; Giulia, planning groceries together. System fonts only. Zero build step. Every token below maps to a CSS custom property in the Worker's <code style="color: #C85A2A;">buildCSS()</code>.</p>
+  </header>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      brand: [
+        { varName: '--color-primary', hex: '#C85A2A', name: 'Primary', note: 'Buttons, FAB, active tab, key actions' },
+        { varName: '--color-primary-light', hex: '#FDF0E8', name: 'Primary Light', note: 'Selected rows, tinted fills' },
+        { varName: '--color-primary-hover', hex: '#AD4B22', name: 'Primary Hover', note: 'Pressed / hover on primary (new)' },
+        { varName: '--color-secondary', hex: '#3D6B35', name: 'Secondary', note: 'Planning accents, veg tags, links' },
+        { varName: '--color-secondary-light', hex: '#EAF3E8', name: 'Secondary Light', note: 'Tinted planning surfaces' },
+        { varName: '--color-secondary-hover', hex: '#32582C', name: 'Secondary Hover', note: 'Pressed / hover on secondary (new)' },
+      ],
+      neutral: [
+        { varName: '--color-bg', hex: '#FEFAE0', name: 'Background', note: 'App canvas, page base' },
+        { varName: '--color-surface', hex: '#FFFFF5', name: 'Surface', note: 'Cards, rows, sheets' },
+        { varName: '--color-surface-sunken', hex: '#F7EFD6', name: 'Surface Sunken', note: 'Inputs, wells, sunken areas (new)' },
+        { varName: '--color-border', hex: '#E0D4B8', name: 'Border', note: 'Dividers, card outlines' },
+        { varName: '--color-border-strong', hex: '#CBB88F', name: 'Border Strong', note: 'Emphasis dividers (new)' },
+        { varName: '--color-text', hex: '#2C1810', name: 'Text', note: 'Primary text' },
+        { varName: '--color-text-muted', hex: '#7A5C4A', name: 'Text Muted', note: 'Meta, captions, placeholders' },
+      ],
+      semantic: [
+        { varName: '--color-success', hex: '#4F8A3E', name: 'Success', note: 'Under budget, in-stock, done' },
+        { varName: '--color-success-light', hex: '#E8F2E3', name: 'Success Light', note: 'Success backgrounds' },
+        { varName: '--color-warning', hex: '#E0A52E', name: 'Warning', note: 'Low stock, nearing budget' },
+        { varName: '--color-warning-light', hex: '#FBF1DA', name: 'Warning Light', note: 'Warning backgrounds' },
+        { varName: '--color-danger', hex: '#C0392B', name: 'Danger', note: 'Over budget, delete, expired' },
+        { varName: '--color-danger-light', hex: '#FBEAE7', name: 'Danger Light', note: 'Danger backgrounds' },
+        { varName: '--color-info', hex: '#2F7E7A', name: 'Info', note: 'Sync status, neutral notices' },
+        { varName: '--color-info-light', hex: '#E2F0EF', name: 'Info Light', note: 'Info backgrounds' },
+      ],
+      dark: [
+        { varName: '--color-dark', hex: '#2C1810', name: 'Dark', note: 'Tab bar, sidebar — signature' },
+        { varName: '--color-dark-elevated', hex: '#3B2418', name: 'Dark Elevated', note: 'Raised dark surfaces (new)' },
+        { varName: '--color-on-dark', hex: '#FEFAE0', name: 'On Dark', note: 'Active icons / text on dark' },
+        { varName: '--color-on-dark-muted', hex: '#9C8166', name: 'On Dark Muted', note: 'Inactive tab icons / labels (new)' },
+      ],
+      typeScale: [
+        { varName: '--text-2xl', px: '36px', meta: '36px · lh 1.1 · 700', role: 'Hero numbers, big display' },
+        { varName: '--text-xl', px: '28px', meta: '28px · lh 1.2 · 700', role: 'Screen titles' },
+        { varName: '--text-lg', px: '22px', meta: '22px · lh 1.3 · 600', role: 'Section titles' },
+        { varName: '--text-md', px: '18px', meta: '18px · lh 1.4 · 600', role: 'Card titles, sheet headers' },
+        { varName: '--text-base', px: '15px', meta: '15px · lh 1.55 · 400', role: 'Body, item names' },
+        { varName: '--text-sm', px: '13px', meta: '13px · lh 1.45 · 400', role: 'Meta, secondary' },
+        { varName: '--text-xs', px: '11px', meta: '11px · lh 1.4 · 600 caps', role: 'Labels, eyebrows' },
+      ],
+      spacing: [
+        { varName: '--space-1', px: '4px' }, { varName: '--space-2', px: '8px' },
+        { varName: '--space-3', px: '12px' }, { varName: '--space-4', px: '16px' },
+        { varName: '--space-5', px: '20px' }, { varName: '--space-6', px: '24px' },
+        { varName: '--space-7', px: '32px' }, { varName: '--space-8', px: '40px' },
+        { varName: '--space-9', px: '48px' }, { varName: '--space-10', px: '64px' },
+      ],
+      radius: [
+        { varName: '--radius-sm', px: '6px', use: 'Chips, badges, inputs' },
+        { varName: '--radius-md', px: '12px', use: 'Cards, buttons, list rows' },
+        { varName: '--radius-lg', px: '20px', use: 'Bottom sheets, hero cards, modals' },
+        { varName: '--radius-full', px: '9999px', use: 'Pills, FAB, avatars, toggles' },
+      ],
+      shadows: [
+        { varName: '--shadow-sm', val: '0 1px 2px rgba(44,24,16,0.06), 0 1px 3px rgba(44,24,16,0.08)', use: 'List rows, chips, resting cards' },
+        { varName: '--shadow-md', val: '0 4px 14px rgba(44,24,16,0.10)', use: 'Raised & recipe cards, hover lift' },
+        { varName: '--shadow-lg', val: '0 16px 40px rgba(44,24,16,0.18)', use: 'Bottom sheets, FAB, modals' },
+      ],
+      durations: [
+        { varName: '--duration-fast', val: '150ms', use: 'Taps, toggles, hovers' },
+        { varName: '--duration-base', val: '250ms', use: 'Sheets, expand/collapse' },
+        { varName: '--duration-slow', val: '400ms', use: 'Pull-to-refresh, hero (new)' },
+      ],
+      easings: [
+        { varName: '--ease-standard', val: 'cubic-bezier(0.4, 0, 0.2, 1)', use: 'Most transitions' },
+        { varName: '--ease-out', val: 'cubic-bezier(0.16, 1, 0.3, 1)', use: 'Entrances, fills (new)' },
+        { varName: '--ease-bounce', val: 'cubic-bezier(0.34, 1.56, 0.64, 1)', use: 'Check, FAB, success pops' },
+      ],
+      principles: [
+        { n: '1', title: 'One thumb, full cart', body: 'In-store is the primary context. Every primary action lives in the bottom third of the screen and is at least 44px tall.' },
+        { n: '2', title: 'Cream first, never clinical', body: 'Surfaces are warm white (#FFFFF5) on cream (#FEFAE0). Pure white and cold grays are banned. Shadows are cast in warm brown.' },
+        { n: '3', title: 'Glanceable truth', body: 'The number that matters — items left, budget, macros — is the largest thing on screen. Summarize before you detail.' },
+        { n: '4', title: 'Two people, one plan', body: 'Always make "who" legible. Martin & Giulia attribution rides on items, meals, and edits. Shared state is the default.' },
+        { n: '5', title: 'Same soul, different room', body: 'Mobile is decisive and one-handed; web is spacious. Tokens, color, type, motion and the dark navigation signature never change between them.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

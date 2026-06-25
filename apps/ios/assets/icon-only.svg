@@ -1,0 +1,12 @@
+<!-- Source icon for @capacitor/assets — identical artwork to the Worker's /icon.svg, scaled to 1024×1024.
+     Full-bleed (no transparency) as required for iOS app icons. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2d9e5f"/>
+  <circle cx="256" cy="206" r="52" fill="#eafff3"/>
+  <circle cx="200" cy="222" r="42" fill="#ffffff"/>
+  <circle cx="312" cy="222" r="42" fill="#ffffff"/>
+  <circle cx="230" cy="232" r="16" fill="#ff6b6b"/>
+  <circle cx="286" cy="226" r="13" fill="#ffd166"/>
+  <path d="M132 250h248a124 124 0 0 1-248 0z" fill="#ffffff"/>
+  <rect x="150" y="240" width="212" height="20" rx="10" fill="#d7f5e6"/>
+</svg>

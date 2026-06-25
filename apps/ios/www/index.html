@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2d9e5f">
+<title>NutriPair</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#2d9e5f;color:#fff;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+  .icon{font-size:56px}
+  h1{font-size:24px;font-weight:800}
+  p{font-size:15px;opacity:.9;line-height:1.5;max-width:280px}
+  button{margin-top:8px;background:#fff;color:#2d9e5f;border:none;border-radius:12px;
+         padding:13px 24px;font-size:16px;font-weight:700}
+</style>
+</head>
+<body>
+  <!--
+    Offline / bootstrap fallback only.
+    In normal operation Capacitor loads server.url (the live Worker) instead of this file.
+    This screen appears if the device is offline when the app launches.
+  -->
+  <div class="icon">🥗</div>
+  <h1>NutriPair</h1>
+  <p>Connexion impossible. Vérifie ta connexion internet puis réessaie.</p>
+  <button onclick="location.replace('https://nutripair.martin-503.workers.dev')">Réessayer</button>
+</body>
+</html>

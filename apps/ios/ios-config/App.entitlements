@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Push Notifications entitlement for NutriPair.
+  After `npx cap add ios`, copy this file to: ios/App/App/App.entitlements
+  (Xcode → target App → Signing & Capabilities → "+ Capability" → Push Notifications
+   will create/wire it automatically; this file is the reference contents.)
+
+  aps-environment:
+    - "development"  while testing on device with a dev provisioning profile
+    - "production"   for TestFlight / App Store builds
+-->
+<plist version="1.0">
+<dict>
+  <key>aps-environment</key>
+  <string>development</string>
+</dict>
+</plist>

@@ -1,0 +1,18 @@
+{
+  "appId": "ro.behave.nutripair",
+  "appName": "NutriPair",
+  "webDir": "www",
+  "server": {
+    "url": "https://nutripair.martin-503.workers.dev",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}

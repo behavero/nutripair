@@ -1,0 +1,20 @@
+# Cursor rules for NutriPair
+
+## Project overview
+Single-file Cloudflare Worker. All logic lives in `src/index.js`.
+No build step — deploy with `wrangler deploy --no-bundle`.
+
+## Code style
+- Use `var` (not `let`/`const`) inside the embedded browser `<script>` block to avoid scoping issues.
+- All browser DOM manipulation via string concatenation — no template literals inside buildHTML().
+- Event listeners via addEventListener only — no inline onclick attributes.
+- Worker-side code can use modern ES2022+ (Cloudflare Workers supports it natively).
+
+## Key constraints
+- Do NOT change GROCERY_DATA item IDs (g1–g44) — they are stored in production KV.
+- Do NOT change DEFAULT_PLAN day keys (lun/mar/mer/jeu/ven/sam/dim).
+- Keep I18N values JSON-safe (no unescaped special characters).
+- Always test with `npm run dev` before `npm run deploy`.
+
+## File structure
+src/index.js is the ONLY source file. Everything else is config.

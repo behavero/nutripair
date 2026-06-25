@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #FEFAE0; }
+  ::selection { background: #C85A2A; color: #FFFFF5; }
+</style>
+</helmet>
+
+<div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #2C1810; background: #FEFAE0; min-height: 100vh; -webkit-font-smoothing: antialiased;">
+
+  <!-- ===== TOP NAV ===== -->
+  <nav style="position: sticky; top: 0; z-index: 50; background: #2C1810; box-shadow: 0 2px 14px rgba(44,24,16,0.28);">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #C85A2A; display: inline-block;"></span>
+        <span style="font: 700 17px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">NutriPair</span>
+        <span style="font: 600 10px/1 system-ui; letter-spacing: 1.5px; text-transform: uppercase; color: #9C8166; margin-left: 6px;">Design System</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <a href="NutriPair-Foundations.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Foundations</a>
+        <a href="NutriPair-Mobile.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Mobile PWA</a>
+        <a href="NutriPair-Web.dc.html" style="font: 600 13px/1 system-ui; color: #FEFAE0; text-decoration: none; padding: 8px 14px; border-radius: 9999px; background: #3D6B35;">Web Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <header style="max-width: 1180px; margin: 0 auto; padding: 56px 28px 8px;">
+    <div style="font: 700 11px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #3D6B35; margin-bottom: 18px;">Component Library · Web Dashboard</div>
+    <h1 style="font: 700 48px/1.04 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1.2px; margin: 0 0 18px; max-width: 20ch;">The home base, before the supermarket.</h1>
+    <p style="font: 400 17px/1.6 system-ui; color: #7A5C4A; margin: 0; max-width: 64ch;">Where Martin &amp; Giulia plan the week on a laptop — richer data, multi-column density, keyboard and drag. Same tokens, same warm cream, same dark navigation signature as the <a href="NutriPair-Mobile.dc.html" style="color: #C85A2A; font-weight: 600; text-decoration: none;">PWA</a> — just a bigger room. Seven components, invented for desktop.</p>
+  </header>
+
+  <div style="max-width: 1180px; margin: 0 auto; padding: 36px 28px 90px; display: flex; flex-direction: column; gap: 22px;">
+
+    <!-- ========== ASSEMBLED SHELL PREVIEW ========== -->
+    <div style="border: 1px solid #E0D4B8; border-radius: 18px; overflow: hidden; box-shadow: 0 16px 40px rgba(44,24,16,0.16);">
+      <div style="background: #2C1810; padding: 11px 16px; display: flex; align-items: center; gap: 8px;">
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #C0392B;"></span>
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #E0A52E;"></span>
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #4F8A3E;"></span>
+        <span style="font: 500 12px/1 system-ui; color: #9C8166; margin-left: 12px;">app.nutripair.co/overview</span>
+      </div>
+      <div style="display: flex; min-height: 520px;">
+        <!-- sidebar -->
+        <div style="width: 220px; background: #2C1810; padding: 22px 16px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 9px; padding: 0 8px 22px;">
+            <span style="width: 10px; height: 10px; border-radius: 9999px; background: #C85A2A;"></span>
+            <span style="font: 700 18px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">NutriPair</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; background: #C85A2A;"><span style="font-size: 16px;">📊</span><span style="font: 600 14px/1 system-ui; color: #fff;">Overview</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">🛒</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Shopping</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">📅</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Planning</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">📖</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Recipes</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">🥗</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Nutrition</span></div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">💰</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Budget</span></div>
+          </div>
+        </div>
+        <!-- main -->
+        <div style="flex: 1; background: #FEFAE0; min-width: 0;">
+          <!-- header bar -->
+          <div style="background: #FFFFF5; border-bottom: 1px solid #E0D4B8; padding: 14px 24px; display: flex; align-items: center; gap: 16px;">
+            <div style="font: 700 20px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">Overview</div>
+            <div style="display: flex; align-items: center; gap: 8px; background: #F7EFD6; border: 1px solid #E0D4B8; border-radius: 9999px; padding: 6px 12px; margin-left: 10px;">
+              <span style="color: #7A5C4A;">‹</span>
+              <span style="font: 600 13px/1 system-ui; color: #2C1810;">Week of 14 Jul</span>
+              <span style="color: #7A5C4A;">›</span>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 system-ui; color: #3D6B35; background: #EAF3E8; border: 1px solid #cfe3ca; padding: 7px 11px; border-radius: 9999px;"><span style="width: 7px; height: 7px; border-radius: 9999px; background: #4F8A3E;"></span>Synced</span>
+              <div style="display: flex;">
+                <span style="width: 30px; height: 30px; border-radius: 9999px; background: #C85A2A; color: #fff; font: 600 12px/30px system-ui; text-align: center; border: 2px solid #FFFFF5;">M</span>
+                <span style="width: 30px; height: 30px; border-radius: 9999px; background: #3D6B35; color: #fff; font: 600 12px/30px system-ui; text-align: center; border: 2px solid #FFFFF5; margin-left: -8px;">G</span>
+              </div>
+            </div>
+          </div>
+          <!-- content -->
+          <div style="padding: 22px 24px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
+              <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 12px; padding: 14px 16px;">
+                <div style="font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 8px;">Protein</div>
+                <div style="font: 700 24px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">128<span style="font-size: 13px; color: #9C8166;">g</span></div>
+              </div>
+              <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 12px; padding: 14px 16px;">
+                <div style="font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 8px;">Carbs</div>
+                <div style="font: 700 24px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">210<span style="font-size: 13px; color: #9C8166;">g</span></div>
+              </div>
+              <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 12px; padding: 14px 16px;">
+                <div style="font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 8px;">Fats</div>
+                <div style="font: 700 24px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">64<span style="font-size: 13px; color: #9C8166;">g</span></div>
+              </div>
+              <div style="background: #2C1810; border-radius: 12px; padding: 14px 16px;">
+                <div style="font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #9C8166; margin-bottom: 8px;">Calories</div>
+                <div style="font: 700 24px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">1 940</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px;">
+              <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 18px;">
+                <div style="width: 92px; height: 92px; border-radius: 9999px; flex-shrink: 0; background: conic-gradient(#C85A2A 0 38%, #3D6B35 38% 64%, #E0A52E 64% 84%, #2F7E7A 84% 100%); display: flex; align-items: center; justify-content: center;">
+                  <div style="width: 58px; height: 58px; border-radius: 9999px; background: #FFFFF5; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <span style="font: 700 16px/1 'Helvetica Neue', Arial, sans-serif; color: #2C1810;">€38</span>
+                    <span style="font: 500 9px/1 system-ui; color: #9C8166;">of €60</span>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 7px;">
+                  <span style="display: flex; align-items: center; gap: 7px; font: 500 12px/1 system-ui; color: #2C1810;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #C85A2A;"></span>Produce €14</span>
+                  <span style="display: flex; align-items: center; gap: 7px; font: 500 12px/1 system-ui; color: #2C1810;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #3D6B35;"></span>Pantry €10</span>
+                  <span style="display: flex; align-items: center; gap: 7px; font: 500 12px/1 system-ui; color: #2C1810;"><span style="width: 9px; height: 9px; border-radius: 3px; background: #E0A52E;"></span>Dairy €8</span>
+                </div>
+              </div>
+              <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; padding: 6px 18px;">
+                <div style="display: flex; align-items: center; padding: 11px 0; border-bottom: 1px solid #EDE2C6;"><span style="flex: 1; font: 600 14px/1 system-ui; color: #2C1810;">Roșii cherry</span><span style="font: 400 13px/1 system-ui; color: #7A5C4A; width: 70px;">Produce</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€2,40</span></div>
+                <div style="display: flex; align-items: center; padding: 11px 0; border-bottom: 1px solid #EDE2C6;"><span style="flex: 1; font: 600 14px/1 system-ui; color: #2C1810;">Parmigiano</span><span style="font: 400 13px/1 system-ui; color: #7A5C4A; width: 70px;">Dairy</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€5,90</span></div>
+                <div style="display: flex; align-items: center; padding: 11px 0;"><span style="flex: 1; font: 600 14px/1 system-ui; color: #2C1810;">Pâine integrală</span><span style="font: 400 13px/1 system-ui; color: #7A5C4A; width: 70px;">Bakery</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€1,80</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font: 400 13px/1.5 system-ui; color: #9C8166; margin: -6px 0 8px; text-align: center;">Assembled shell — sidebar + header + macro KPIs + budget donut + grocery table. Individual components below.</p>
+
+    <!-- ========== A · SIDEBAR ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 18px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">A</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Sidebar Navigation</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">The dark <code style="font: 500 13px/1 ui-monospace, monospace; color: #C85A2A;">#2C1810</code> signature carried to desktop. Collapses to a 72px icon rail. Active item = orange fill; hover lifts the muted items to cream.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 32px 28px; display: flex; gap: 28px; justify-content: center; align-items: flex-start;">
+        <div>
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #9C8166; margin-bottom: 12px;">Expanded · 220px</div>
+          <div style="width: 220px; background: #2C1810; border-radius: 16px; padding: 20px 14px;">
+            <div style="display: flex; align-items: center; gap: 9px; padding: 0 8px 20px;">
+              <span style="width: 10px; height: 10px; border-radius: 9999px; background: #C85A2A;"></span>
+              <span style="font: 700 17px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">NutriPair</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; background: #C85A2A;"><span style="font-size: 16px;">📊</span><span style="font: 600 14px/1 system-ui; color: #fff;">Overview</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">🛒</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Shopping</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; background: #3B2418;"><span style="font-size: 16px;">📅</span><span style="font: 500 14px/1 system-ui; color: #FEFAE0;">Planning</span><span style="margin-left: auto; font: 700 10px/1 system-ui; color: #fff; background: #C85A2A; padding: 4px 7px; border-radius: 9999px;">3</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">📖</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Recipes</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">🥗</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Nutrition</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">💰</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">Budget</span></div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px;"><span style="font-size: 16px; opacity: 0.65;">🕑</span><span style="font: 500 14px/1 system-ui; color: #C7B299;">History</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #9C8166; margin-bottom: 12px;">Collapsed · 72px</div>
+          <div style="width: 72px; background: #2C1810; border-radius: 16px; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <span style="width: 12px; height: 12px; border-radius: 9999px; background: #C85A2A; margin-bottom: 14px;"></span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; background: #C85A2A; display: flex; align-items: center; justify-content: center; font-size: 18px;">📊</span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.65;">🛒</span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.65;">📅</span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.65;">📖</span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.65;">🥗</span>
+            <span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.65;">💰</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 18px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-dark</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-dark-elevated</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-primary</span>
+        <span style="font: 500 12px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 6px 10px; border-radius: 9999px;">collapse 250ms · --ease-standard</span>
+      </div>
+    </div>
+
+    <!-- ========== B · DATA TABLE ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 18px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">B</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Grocery Data Table</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">Sortable, filterable, inline-editable. Filter chips above, sort arrows in headers, hover-lift rows, who-added avatars, and per-row status.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 28px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <span style="font: 600 13px/1 system-ui; color: #fff; background: #C85A2A; padding: 8px 14px; border-radius: 9999px;">All · 47</span>
+          <span style="font: 500 13px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 8px 14px; border-radius: 9999px;">Produce</span>
+          <span style="font: 500 13px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 8px 14px; border-radius: 9999px;">Dairy</span>
+          <span style="font: 500 13px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 8px 14px; border-radius: 9999px;">To buy</span>
+          <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font: 400 13px/1 system-ui; color: #9C8166; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 8px 14px; border-radius: 9999px;">🔍 Caută… <span style="font: 600 10px/1 ui-monospace, monospace; color: #7A5C4A; background: #F7EFD6; border: 1px solid #E0D4B8; padding: 3px 6px; border-radius: 5px;">/</span></span>
+        </div>
+        <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 36px 2fr 1fr 0.7fr 1fr 1fr 0.8fr; background: #F7EFD6; border-bottom: 1px solid #E0D4B8;">
+            <div style="padding: 12px 14px; display: flex; align-items: center;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 2px solid #CBB88F;"></span></div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #C85A2A;">Articol ▾</div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A;">Categorie</div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A;">Cant.</div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A;">Magazin</div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A;">Preț ▾</div>
+            <div style="padding: 12px 14px; font: 600 10px/1 system-ui; letter-spacing: 1px; text-transform: uppercase; color: #7A5C4A;">Status</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 36px 2fr 1fr 0.7fr 1fr 1fr 0.8fr; border-bottom: 1px solid #EDE2C6; align-items: center;">
+            <div style="padding: 13px 14px;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 2px solid #CBB88F; display: inline-block;"></span></div>
+            <div style="padding: 13px 14px; font: 500 14px/1.2 system-ui; color: #2C1810;">Roșii cherry</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Produce</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #2C1810;">500 g</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Mega Image</div>
+            <div style="padding: 13px 14px; font: 600 13px/1 system-ui; color: #2C1810;">€2,40</div>
+            <div style="padding: 13px 14px;"><span style="font: 600 11px/1 system-ui; color: #C85A2A; background: #FDF0E8; padding: 5px 9px; border-radius: 9999px;">To buy</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 36px 2fr 1fr 0.7fr 1fr 1fr 0.8fr; border-bottom: 1px solid #EDE2C6; align-items: center; background: #FFFDF2;">
+            <div style="padding: 13px 14px;"><span style="width: 18px; height: 18px; border-radius: 5px; background: #4F8A3E; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 11px;">✓</span></div>
+            <div style="padding: 13px 14px; font: 500 14px/1.2 system-ui; color: #7A5C4A; text-decoration: line-through;">Parmigiano 200g</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Dairy</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">1 buc</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Carrefour</div>
+            <div style="padding: 13px 14px; font: 600 13px/1 system-ui; color: #2C1810;">€5,90</div>
+            <div style="padding: 13px 14px;"><span style="font: 600 11px/1 system-ui; color: #3D6B35; background: #E8F2E3; padding: 5px 9px; border-radius: 9999px;">In cart</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 36px 2fr 1fr 0.7fr 1fr 1fr 0.8fr; align-items: center;">
+            <div style="padding: 13px 14px;"><span style="width: 18px; height: 18px; border-radius: 5px; border: 2px solid #CBB88F; display: inline-block;"></span></div>
+            <div style="padding: 13px 14px; font: 500 14px/1.2 system-ui; color: #2C1810;">Mozzarella di bufala</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Dairy</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #2C1810;">2 buc</div>
+            <div style="padding: 13px 14px; font: 400 13px/1 system-ui; color: #7A5C4A;">Mega Image</div>
+            <div style="padding: 13px 14px; font: 600 13px/1 system-ui; color: #2C1810;">€7,20</div>
+            <div style="padding: 13px 14px;"><span style="font: 600 11px/1 system-ui; color: #C99A2E; background: #FBF1DA; padding: 5px 9px; border-radius: 9999px;">Low stock</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 18px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-surface-sunken</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-border</span>
+        <span style="font: 500 12px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 6px 10px; border-radius: 9999px;">dbl-click cell → inline edit · ⌘A select all</span>
+      </div>
+    </div>
+
+    <!-- ========== C · MACRO KPI CARDS ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 18px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">C</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Nutrition Macro Cards</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">KPI cards — big value, target, progress ring, and delta vs goal. Calories card inverts to dark for emphasis.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 28px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+        <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 12px;">Protein</div>
+          <div style="font: 700 34px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1px; color: #2C1810;">128<span style="font: 600 15px/1 system-ui; color: #9C8166;"> g</span></div>
+          <div style="font: 400 12px/1 system-ui; color: #9C8166; margin: 8px 0 12px;">of 140 g goal</div>
+          <div style="height: 8px; border-radius: 9999px; background: #F7EFD6; overflow: hidden;"><div style="width: 91%; height: 100%; background: #C85A2A; border-radius: 9999px;"></div></div>
+        </div>
+        <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 12px;">Carbs</div>
+          <div style="font: 700 34px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1px; color: #2C1810;">210<span style="font: 600 15px/1 system-ui; color: #9C8166;"> g</span></div>
+          <div style="font: 400 12px/1 system-ui; color: #9C8166; margin: 8px 0 12px;">of 240 g goal</div>
+          <div style="height: 8px; border-radius: 9999px; background: #F7EFD6; overflow: hidden;"><div style="width: 87%; height: 100%; background: #3D6B35; border-radius: 9999px;"></div></div>
+        </div>
+        <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #7A5C4A; margin-bottom: 12px;">Fats</div>
+          <div style="font: 700 34px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1px; color: #2C1810;">64<span style="font: 600 15px/1 system-ui; color: #9C8166;"> g</span></div>
+          <div style="font: 400 12px/1 system-ui; color: #9C8166; margin: 8px 0 12px;">of 60 g goal</div>
+          <div style="height: 8px; border-radius: 9999px; background: #F7EFD6; overflow: hidden;"><div style="width: 100%; height: 100%; background: #E0A52E; border-radius: 9999px;"></div></div>
+        </div>
+        <div style="background: #2C1810; border-radius: 14px; padding: 18px 20px;">
+          <div style="font: 600 10px/1 system-ui; letter-spacing: 1.2px; text-transform: uppercase; color: #9C8166; margin-bottom: 12px;">Calories</div>
+          <div style="font: 700 34px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1px; color: #FEFAE0;">1 940</div>
+          <div style="font: 400 12px/1 system-ui; color: #9C8166; margin: 8px 0 12px;">of 2 100 kcal</div>
+          <div style="height: 8px; border-radius: 9999px; background: rgba(255,255,255,0.12); overflow: hidden;"><div style="width: 92%; height: 100%; background: #FDA878; border-radius: 9999px;"></div></div>
+        </div>
+      </div>
+      <div style="padding: 18px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--text-2xl</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-dark</span>
+        <span style="font: 500 12px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 6px 10px; border-radius: 9999px;">over-goal bar uses --color-warning</span>
+      </div>
+    </div>
+
+    <!-- ========== D · WEEKLY CALENDAR ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 18px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">D</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Weekly Calendar Grid</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">7 days × 3 meal rows. Drag meal chips between slots; empty slots show a ghost "+ add". Meal-type accent matches the mobile meal card.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 24px; overflow-x: auto;">
+        <div style="min-width: 720px; display: grid; grid-template-columns: 64px repeat(7, 1fr); gap: 8px;">
+          <div></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Lun<br><span style="color: #9C8166; font-weight: 400;">14</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #C85A2A;">Mar<br><span style="font-weight: 400;">15</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Mie<br><span style="color: #9C8166; font-weight: 400;">16</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Joi<br><span style="color: #9C8166; font-weight: 400;">17</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Vin<br><span style="color: #9C8166; font-weight: 400;">18</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Sâm<br><span style="color: #9C8166; font-weight: 400;">19</span></div>
+          <div style="text-align: center; font: 600 11px/1.3 system-ui; color: #7A5C4A;">Dum<br><span style="color: #9C8166; font-weight: 400;">20</span></div>
+
+          <div style="font: 600 9px/1.2 system-ui; letter-spacing: 0.5px; text-transform: uppercase; color: #9C8166; display: flex; align-items: center;">Mic dejun</div>
+          <div style="background: #FFFFF5; border: 1px solid #f0e2c0; border-left: 3px solid #E0A52E; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Avocado toast</div>
+          <div style="background: #FFFFF5; border: 1px solid #f0e2c0; border-left: 3px solid #E0A52E; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Yogurt &amp; granola</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+          <div style="background: #FFFFF5; border: 1px solid #f0e2c0; border-left: 3px solid #E0A52E; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Cornetti</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+          <div style="background: #FFFFF5; border: 1px solid #f0e2c0; border-left: 3px solid #E0A52E; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Uova</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+
+          <div style="font: 600 9px/1.2 system-ui; letter-spacing: 0.5px; text-transform: uppercase; color: #9C8166; display: flex; align-items: center;">Prânz</div>
+          <div style="background: #FFFFF5; border: 1px solid #f3d8c6; border-left: 3px solid #C85A2A; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Panini misti</div>
+          <div style="background: #FDF0E8; border: 1.5px dashed #C85A2A; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #C85A2A; min-height: 46px; box-shadow: 0 4px 12px rgba(200,90,42,0.18); transform: rotate(-1.5deg);">Insalata caprese</div>
+          <div style="background: #FFFFF5; border: 1px solid #f3d8c6; border-left: 3px solid #C85A2A; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Salade niçoise</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+          <div style="background: #FFFFF5; border: 1px solid #f3d8c6; border-left: 3px solid #C85A2A; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Wrap pui</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+          <div style="border: 1px dashed #CBB88F; border-radius: 8px; min-height: 46px; display: flex; align-items: center; justify-content: center; color: #C85A2A; font: 600 16px/1 system-ui;">+</div>
+
+          <div style="font: 600 9px/1.2 system-ui; letter-spacing: 0.5px; text-transform: uppercase; color: #9C8166; display: flex; align-items: center;">Cină</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Risotto funghi</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Pasta Norma</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Pește la cuptor</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Minestrone</div>
+          <div style="background: #FBEAE7; border: 1px solid #f0c8c2; border-left: 3px solid #C0392B; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #C0392B; min-height: 46px; display: flex; align-items: center;">lipsă</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Pizza fatta in casa</div>
+          <div style="background: #FFFFF5; border: 1px solid #cfe3ca; border-left: 3px solid #3D6B35; border-radius: 8px; padding: 8px; font: 500 11px/1.2 system-ui; color: #2C1810; min-height: 46px;">Tocăniță</div>
+        </div>
+      </div>
+      <div style="padding: 18px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--radius-sm</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--shadow-md (drag)</span>
+        <span style="font: 500 12px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 6px 10px; border-radius: 9999px;">drag tilts −1.5° · drop target glows --color-secondary-light</span>
+      </div>
+    </div>
+
+    <!-- ========== ROW: RECIPE GALLERY + BUDGET ========== -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; align-items: start;">
+
+      <!-- E · RECIPE GALLERY -->
+      <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+        <div style="padding: 26px 28px 18px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+            <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">E</span>
+            <h2 style="font: 700 22px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Recipe Gallery</h2>
+          </div>
+          <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0;">Responsive grid — image, tags, and an "add to plan" button revealed on hover.</p>
+        </div>
+        <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+            <div style="height: 96px; background: #FDF0E8; display: flex; align-items: center; justify-content: center; font-size: 40px;">🍝</div>
+            <div style="padding: 12px 14px;">
+              <div style="font: 700 15px/1.2 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; color: #2C1810; margin-bottom: 5px;">Pasta alla Norma</div>
+              <div style="font: 400 12px/1 system-ui; color: #7A5C4A; margin-bottom: 10px;">35 min · 620 kcal</div>
+              <button style="width: 100%; font: 600 12px/1 system-ui; color: #fff; background: #C85A2A; border: none; border-radius: 9px; padding: 9px 0; cursor: pointer;">+ Add to plan</button>
+            </div>
+          </div>
+          <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+            <div style="height: 96px; background: #EAF3E8; display: flex; align-items: center; justify-content: center; font-size: 40px;">🥗</div>
+            <div style="padding: 12px 14px;">
+              <div style="font: 700 15px/1.2 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; color: #2C1810; margin-bottom: 5px;">Salade niçoise</div>
+              <div style="font: 400 12px/1 system-ui; color: #7A5C4A; margin-bottom: 10px;">20 min · 410 kcal</div>
+              <button style="width: 100%; font: 600 12px/1 system-ui; color: #C85A2A; background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 9px; padding: 9px 0; cursor: pointer;">+ Add to plan</button>
+            </div>
+          </div>
+          <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+            <div style="height: 96px; background: #E2F0EF; display: flex; align-items: center; justify-content: center; font-size: 40px;">🍲</div>
+            <div style="padding: 12px 14px;">
+              <div style="font: 700 15px/1.2 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; color: #2C1810; margin-bottom: 5px;">Risotto ai funghi</div>
+              <div style="font: 400 12px/1 system-ui; color: #7A5C4A; margin-bottom: 10px;">40 min · 540 kcal</div>
+              <button style="width: 100%; font: 600 12px/1 system-ui; color: #C85A2A; background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 9px; padding: 9px 0; cursor: pointer;">+ Add to plan</button>
+            </div>
+          </div>
+          <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+            <div style="height: 96px; background: #FBF1DA; display: flex; align-items: center; justify-content: center; font-size: 40px;">🍕</div>
+            <div style="padding: 12px 14px;">
+              <div style="font: 700 15px/1.2 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; color: #2C1810; margin-bottom: 5px;">Pizza fatta in casa</div>
+              <div style="font: 400 12px/1 system-ui; color: #7A5C4A; margin-bottom: 10px;">90 min · 780 kcal</div>
+              <button style="width: 100%; font: 600 12px/1 system-ui; color: #C85A2A; background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 9px; padding: 9px 0; cursor: pointer;">+ Add to plan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- F · BUDGET WIDGET -->
+      <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+        <div style="padding: 26px 28px 18px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+            <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">F</span>
+            <h2 style="font: 700 22px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Budget Tracker</h2>
+          </div>
+          <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0;">Donut + category breakdown. Center shows spent vs weekly budget.</p>
+        </div>
+        <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+          <div style="width: 168px; height: 168px; border-radius: 9999px; background: conic-gradient(#C85A2A 0 37%, #3D6B35 37% 63%, #E0A52E 63% 84%, #2F7E7A 84% 100%); display: flex; align-items: center; justify-content: center;">
+            <div style="width: 108px; height: 108px; border-radius: 9999px; background: #FEFAE0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <span style="font: 700 30px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1px; color: #2C1810;">€38</span>
+              <span style="font: 500 12px/1 system-ui; color: #9C8166; margin-top: 3px;">of €60</span>
+              <span style="font: 600 10px/1 system-ui; color: #3D6B35; background: #EAF3E8; padding: 4px 8px; border-radius: 9999px; margin-top: 8px;">€22 left</span>
+            </div>
+          </div>
+          <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 11px; height: 11px; border-radius: 4px; background: #C85A2A;"></span><span style="font: 500 13px/1 system-ui; color: #2C1810; flex: 1;">Produce</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€14,20</span></div>
+            <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 11px; height: 11px; border-radius: 4px; background: #3D6B35;"></span><span style="font: 500 13px/1 system-ui; color: #2C1810; flex: 1;">Pantry</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€9,80</span></div>
+            <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 11px; height: 11px; border-radius: 4px; background: #E0A52E;"></span><span style="font: 500 13px/1 system-ui; color: #2C1810; flex: 1;">Dairy</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€8,10</span></div>
+            <div style="display: flex; align-items: center; gap: 10px;"><span style="width: 11px; height: 11px; border-radius: 4px; background: #2F7E7A;"></span><span style="font: 500 13px/1 system-ui; color: #2C1810; flex: 1;">Bakery</span><span style="font: 600 13px/1 system-ui; color: #2C1810;">€5,90</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== G · HEADER BAR ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 18px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #3D6B35; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">G</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Header Bar</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">Page title, week selector, live sync status, command-K, and the Martin + Giulia avatar pair. Sync state uses <code style="font: 500 13px/1 ui-monospace, monospace; color: #C85A2A;">--color-success / -info / -danger</code>.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 3px rgba(44,24,16,0.06);">
+          <div style="font: 700 20px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">Planning</div>
+          <div style="display: flex; align-items: center; gap: 8px; background: #F7EFD6; border: 1px solid #E0D4B8; border-radius: 9999px; padding: 7px 14px; margin-left: 6px;">
+            <span style="color: #7A5C4A; cursor: pointer;">‹</span>
+            <span style="font: 600 13px/1 system-ui; color: #2C1810;">Week of 14 Jul</span>
+            <span style="color: #7A5C4A; cursor: pointer;">›</span>
+          </div>
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+            <span style="display: inline-flex; align-items: center; gap: 7px; font: 400 13px/1 system-ui; color: #9C8166; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 8px 12px; border-radius: 9999px;">🔍 <span style="font: 600 10px/1 ui-monospace, monospace; color: #7A5C4A; background: #F7EFD6; border: 1px solid #E0D4B8; padding: 3px 6px; border-radius: 5px;">⌘K</span></span>
+            <span style="display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 system-ui; color: #3D6B35; background: #EAF3E8; border: 1px solid #cfe3ca; padding: 8px 12px; border-radius: 9999px;"><span style="width: 7px; height: 7px; border-radius: 9999px; background: #4F8A3E;"></span>Synced</span>
+            <div style="display: flex;">
+              <span style="width: 32px; height: 32px; border-radius: 9999px; background: #C85A2A; color: #fff; font: 600 13px/32px system-ui; text-align: center; border: 2px solid #FFFFF5;">M</span>
+              <span style="width: 32px; height: 32px; border-radius: 9999px; background: #3D6B35; color: #fff; font: 600 13px/32px system-ui; text-align: center; border: 2px solid #FFFFF5; margin-left: -9px;">G</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <span style="display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 system-ui; color: #2F7E7A; background: #E2F0EF; border: 1px solid #bfdedb; padding: 8px 13px; border-radius: 9999px;"><span style="width: 7px; height: 7px; border-radius: 9999px; background: #2F7E7A;"></span>Syncing…</span>
+          <span style="display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 system-ui; color: #C0392B; background: #FBEAE7; border: 1px solid #f0c8c2; padding: 8px 13px; border-radius: 9999px;"><span style="width: 7px; height: 7px; border-radius: 9999px; background: #C0392B;"></span>Offline — 2 pending</span>
+        </div>
+      </div>
+      <div style="padding: 18px 28px 24px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-surface</span>
+        <span style="font: 500 12px/1 ui-monospace, monospace; color: #C85A2A; background: #FDF0E8; padding: 6px 10px; border-radius: 9999px;">--color-success / -info / -danger</span>
+        <span style="font: 500 12px/1 system-ui; color: #7A5C4A; background: #FFFFF5; border: 1px solid #E0D4B8; padding: 6px 10px; border-radius: 9999px;">avatars: Martin = primary, Giulia = secondary</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== FOOTER NAV ===== -->
+  <footer style="max-width: 1180px; margin: 0 auto; padding: 0 28px 80px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <a href="NutriPair-Mobile.dc.html" style="text-decoration: none; background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 18px; padding: 30px 32px; display: block;">
+        <div style="font: 600 10px/1 system-ui; letter-spacing: 1.5px; text-transform: uppercase; color: #9C8166; margin-bottom: 10px;">← Back</div>
+        <div style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #2C1810;">Mobile PWA Components</div>
+        <div style="font: 400 14px/1.5 system-ui; color: #7A5C4A; margin-top: 8px;">Tab bar, item rows, FAB stack, progress hero, bottom sheets &amp; more.</div>
+      </a>
+      <a href="NutriPair-Foundations.dc.html" style="text-decoration: none; background: #2C1810; border-radius: 18px; padding: 30px 32px; display: block;">
+        <div style="font: 600 10px/1 system-ui; letter-spacing: 1.5px; text-transform: uppercase; color: #9C8166; margin-bottom: 10px;">Start over</div>
+        <div style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">Foundations</div>
+        <div style="font: 400 14px/1.5 system-ui; color: #C7B299; margin-top: 8px;">Tokens, principles, interaction patterns &amp; the brand contract.</div>
+      </a>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+</body>
+</html>

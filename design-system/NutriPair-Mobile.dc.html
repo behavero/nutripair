@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #FEFAE0; }
+  ::selection { background: #C85A2A; color: #FFFFF5; }
+</style>
+</helmet>
+
+<div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #2C1810; background: #FEFAE0; min-height: 100vh; -webkit-font-smoothing: antialiased;">
+
+  <!-- ===== TOP NAV ===== -->
+  <nav style="position: sticky; top: 0; z-index: 50; background: #2C1810; box-shadow: 0 2px 14px rgba(44,24,16,0.28);">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 11px; height: 11px; border-radius: 9999px; background: #C85A2A; display: inline-block;"></span>
+        <span style="font: 700 17px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; color: #FEFAE0;">NutriPair</span>
+        <span style="font: 600 10px/1 system-ui; letter-spacing: 1.5px; text-transform: uppercase; color: #9C8166; margin-left: 6px;">Design System</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <a href="NutriPair-Foundations.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Foundations</a>
+        <a href="NutriPair-Mobile.dc.html" style="font: 600 13px/1 system-ui; color: #FEFAE0; text-decoration: none; padding: 8px 14px; border-radius: 9999px; background: #C85A2A;">Mobile PWA</a>
+        <a href="NutriPair-Web.dc.html" style="font: 600 13px/1 system-ui; color: #C7B299; text-decoration: none; padding: 8px 14px; border-radius: 9999px;">Web Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <header style="max-width: 1120px; margin: 0 auto; padding: 56px 28px 8px;">
+    <div style="font: 700 11px/1 'Helvetica Neue', Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #C85A2A; margin-bottom: 18px;">Component Library · Mobile PWA</div>
+    <h1 style="font: 700 48px/1.04 'Helvetica Neue', Arial, sans-serif; letter-spacing: -1.2px; margin: 0 0 18px; max-width: 18ch;">Built for one hand and a full cart.</h1>
+    <p style="font: 400 17px/1.6 system-ui; color: #7A5C4A; margin: 0; max-width: 62ch;">Ten components covering the four tabs — Shopping, Planning, Recipes, Today. Every interactive element clears a 44px touch target, every action sits in reach of the thumb, and the dark tab bar anchors it all. Specs reference the tokens defined in <a href="NutriPair-Foundations.dc.html" style="color: #C85A2A; font-weight: 600; text-decoration: none;">Foundations</a>.</p>
+  </header>
+
+  <div style="max-width: 1120px; margin: 0 auto; padding: 40px 28px 90px; display: flex; flex-direction: column; gap: 22px;">
+
+    <!-- ========== A · BOTTOM TAB BAR ========== -->
+    <div style="background: #FFFFF5; border: 1px solid #E0D4B8; border-radius: 20px; box-shadow: 0 1px 3px rgba(44,24,16,0.07); overflow: hidden;">
+      <div style="padding: 26px 28px 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <span style="font: 700 13px/1 'Helvetica Neue', Arial, sans-serif; color: #FFFFF5; background: #C85A2A; width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">A</span>
+          <h2 style="font: 700 24px/1.1 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.5px; margin: 0;">Bottom Tab Bar</h2>
+        </div>
+        <p style="font: 400 14px/1.55 system-ui; color: #7A5C4A; margin: 0; max-width: 70ch;">The brand signature. Four tabs on dark #2C1810, fixed to the bottom safe-area. Active tab gets a warm orange pill + bright label; inactive icons recede to muted tan. Active pill 50×32 / --radius-full / rgba(200,90,42,0.22); labels 10px uppercase 0.8px tracking; icons 22px.</p>
+      </div>
+      <div style="background: #FEFAE0; border-top: 1px solid #E0D4B8; padding: 40px 28px; display: flex; justify-content: center;">
+        <div style="width: 390px; background: #2C1810; border-radius: 22px; padding: 12px 10px 18px; display: grid; grid-template-columns: repeat(4, 1fr); box-shadow: 0 16px 40px rgba(44,24,16,0.20);">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0;">
+            <div style="width: 50px; height: 32px; border-radius: 9999px; background: rgba(200,90,42,0.22); display: flex; align-items: center; justify-content: center; font-size: 19px;">🛒</div>
+            <span style="font: 700 10px/1 system-ui; letter-spacing: 0.8px; text-transform: uppercase; color: #FDF0E8;">Shopping</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0;">
+            <div style="width: 50px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 19px; opacity: 0.5;">📅</div>
+            <span style="font: 600 10px/1 system-ui; letter-spacing: 0.8px; text-transform: uppercase; color: #9C8166;">Planning</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0;">
+            <div style="width: 50px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 19px; opacity: 0.5;">📖</div>
+            <span style="font: 600 10px/1 system-ui; letter-spacing: 0.8px; text-transform: uppercase; color: #9C8166;">Recipes</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0;">
+            <div style="width: 50px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 19px; opacity: 0.5;">☀️</div>
+            <span style="font: 600 10px/1 system-ui; letter-spacing: 0.8px; text-transform: uppercase; color: #9C8166;">Today</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The full interactive component library (A–J: Tab Bar, List Item Row, Section Header,
+         Progress Hero, FAB Stack, Recipe Card, Meal Card, Bottom Sheet, Toast, Day Card) is
+         authored on claude.ai/design and implemented 1:1 in apps/worker/src/index.js. Exact
+         per-component specs (sizes, weights, radii, shadows, token tags) are documented inline
+         in the source canvas; this checked-in copy preserves the tab-bar reference + anatomy notes. -->
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
