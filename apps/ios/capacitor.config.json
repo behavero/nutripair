@@ -2,6 +2,7 @@
   "appId": "ro.behave.nutripair",
   "appName": "NutriPair",
   "webDir": "www",
+  "appendUserAgent": "NutriPairNative/1",
   "server": {
     "url": "https://nutripair.martin-503.workers.dev",
     "cleartext": false

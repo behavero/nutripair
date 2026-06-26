@@ -2066,25 +2066,38 @@ function migratePlanShape(s) {
 
 // Rough macro estimates per 100 g/ml for catalogue items (refine later).
 // Items not listed contribute 0 to the macro KPIs.
+// Per-100g macro estimates for every catalogue item g1–g65 (protein/carbs/fat/kcal).
+// Feeds the web dashboard's nutrition KPIs (macroTotals). Rough but realistic.
 const MACROS = {
   g1:{p:13,c:1,f:11,k:155}, g2:{p:27,c:0,f:14,k:239}, g3:{p:20,c:0,f:13,k:208},
   g4:{p:19,c:0,f:25,k:305}, g5:{p:25,c:0,f:11,k:208}, g6:{p:26,c:0,f:1,k:116},
   g7:{p:10,c:4,f:5,k:97},   g8:{p:3,c:4,f:1,k:41},    g9:{p:12,c:4,f:5,k:98},
   g10:{p:3,c:5,f:2,k:55},   g11:{p:14,c:4,f:21,k:264},g12:{p:1,c:0,f:81,k:717},
-  g16:{p:1,c:4,f:0,k:18},   g20:{p:2,c:20,f:0,k:86},  g25:{p:1,c:23,f:0,k:89},
-  g26:{p:0,c:14,f:0,k:52},  g28:{p:2,c:9,f:15,k:160}, g30:{p:9,c:20,f:0,k:116},
+  g13:{p:1,c:6,f:0,k:31},   g14:{p:1,c:3,f:0,k:17},   g15:{p:1,c:6,f:0,k:25},
+  g16:{p:1,c:4,f:0,k:18},   g17:{p:1,c:4,f:0,k:15},   g18:{p:3,c:4,f:0,k:23},
+  g19:{p:3,c:7,f:0,k:34},   g20:{p:2,c:20,f:0,k:86},  g21:{p:1,c:10,f:0,k:41},
+  g22:{p:2,c:7,f:0,k:31},   g23:{p:6,c:33,f:1,k:149}, g24:{p:1,c:9,f:0,k:40},
+  g25:{p:1,c:23,f:0,k:89},  g26:{p:0,c:14,f:0,k:52},  g27:{p:1,c:9,f:0,k:29},
+  g28:{p:2,c:9,f:15,k:160}, g29:{p:1,c:14,f:0,k:57},  g30:{p:9,c:20,f:0,k:116},
   g31:{p:9,c:25,f:1,k:139}, g32:{p:9,c:27,f:3,k:164}, g33:{p:3,c:23,f:1,k:111},
   g34:{p:17,c:66,f:7,k:389},g35:{p:9,c:49,f:3,k:247}, g36:{p:15,c:14,f:65,k:654},
   g37:{p:21,c:22,f:49,k:579},g38:{p:0,c:0,f:100,k:884},g39:{p:25,c:20,f:50,k:588},
-  g40:{p:17,c:42,f:31,k:486},g42:{p:8,c:46,f:43,k:600},g43:{p:0,c:82,f:0,k:304},
-  g54:{p:13,c:75,f:2,k:371},g55:{p:13,c:72,f:2,k:376},g56:{p:21,c:22,f:49,k:579},
-  g57:{p:10,c:76,f:1,k:364},g47:{p:3,c:5,f:4,k:64},   g45:{p:11,c:3,f:20,k:230},
-  g46:{p:22,c:2,f:25,k:321}
+  g40:{p:17,c:42,f:31,k:486},g41:{p:30,c:11,f:49,k:559},g42:{p:8,c:46,f:43,k:600},
+  g43:{p:0,c:82,f:0,k:304}, g44:{p:1,c:4,f:0,k:19},   g45:{p:11,c:3,f:20,k:230},
+  g46:{p:22,c:2,f:25,k:321},g47:{p:3,c:5,f:4,k:64},   g48:{p:3,c:3,f:1,k:23},
+  g49:{p:4,c:8,f:1,k:44},   g50:{p:2,c:19,f:1,k:83},  g51:{p:1,c:12,f:0,k:47},
+  g52:{p:1,c:11,f:0,k:42},  g53:{p:2,c:75,f:0,k:282}, g54:{p:13,c:75,f:2,k:371},
+  g55:{p:13,c:72,f:2,k:376},g56:{p:21,c:22,f:49,k:579},g57:{p:10,c:76,f:1,k:364},
+  g58:{p:20,c:28,f:45,k:562},g59:{p:0,c:0,f:100,k:884},g60:{p:4,c:5,f:4,k:67},
+  g61:{p:5,c:6,f:7,k:100},  g62:{p:1,c:5,f:1,k:38},   g63:{p:20,c:58,f:14,k:228},
+  g64:{p:0,c:28,f:0,k:53},  g65:{p:0,c:13,f:0,k:288}
 };
 
 /**
  * GET /web — the desktop dashboard. A self-contained SPA, separate from the
- * mobile PWA, sharing the same KV via /api/state (read-only for now).
+ * mobile PWA, sharing the same KV/Supabase state via /api/state. Fully editable:
+ * shopping toggles/add/edit/delete/price, meal-plan editing, and recipe CRUD all
+ * POST to the same /api/* routes the mobile app uses.
  * @returns {string} the full desktop HTML document.
  */
 function buildWebHTML() {
@@ -2202,6 +2215,39 @@ body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-t
 .wpf-invite{display:flex;gap:8px;margin-top:12px}
 .wpf-invite input{flex:1;min-width:0;padding:10px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-sunken);font-size:12px;color:var(--color-text)}
 .wpf-copy{background:var(--color-primary);color:#fff;border:none;border-radius:10px;padding:0 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
+/* ── editable web dashboard: shopping affordances, modals, toast ── */
+.shop-bar,.rec-bar{display:flex;justify-content:flex-end;margin-bottom:14px}
+.shop-add{background:var(--color-primary);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.gt-check{cursor:pointer}
+.gt-price{cursor:pointer}.gt-price:hover{color:var(--color-primary)}
+.gt-act{display:inline-flex;gap:4px;padding:0!important}
+.gt-ico-btn{background:none;border:none;cursor:pointer;font-size:14px;color:var(--color-text-muted);padding:4px 6px;border-radius:6px}
+.gt-ico-btn:hover{background:var(--color-surface-sunken);color:var(--color-text)}
+.price-input{width:84px;padding:4px 6px;border:1.5px solid var(--color-primary);border-radius:6px;font-size:13px;font-family:inherit}
+.cal-cell{cursor:pointer}.cal-cell:hover{outline:2px solid var(--color-primary);outline-offset:-1px}
+.rec-actions{display:flex;gap:6px;margin-top:8px}
+.rec-mini{flex:1;font-size:12px;font-weight:600;border-radius:8px;padding:7px 0;cursor:pointer;border:1.5px solid var(--color-border);background:var(--color-surface);color:var(--color-text)}
+.rec-mini:hover{border-color:var(--color-border-strong)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(44,24,16,.45);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.on{display:flex}
+.modal{background:var(--color-surface);border:1px solid var(--color-border);border-radius:16px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--color-border);position:sticky;top:0;background:var(--color-surface)}
+.modal-title{font-family:var(--font-display);font-size:17px;font-weight:700}
+.modal-x{background:none;border:none;font-size:24px;line-height:1;color:var(--color-text-muted);cursor:pointer}
+.modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--color-text-muted)}
+.fld input,.fld select,.fld textarea{padding:10px 12px;border:1.5px solid var(--color-border);border-radius:10px;background:var(--color-surface-sunken);font-size:14px;color:var(--color-text);font-family:inherit}
+.fld textarea{resize:vertical;min-height:54px}
+.modal-foot{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--color-border)}
+.mbtn{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--color-border);background:var(--color-surface);color:var(--color-text)}
+.mbtn.primary{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
+.mbtn.danger{background:var(--color-surface);border-color:var(--color-border);color:var(--color-danger)}
+.rec-ing-row{display:grid;grid-template-columns:1fr 72px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
+.rec-ing-row input,.rec-ing-row select{padding:7px 8px;border:1.5px solid var(--color-border);border-radius:8px;font-size:12px;background:var(--color-surface-sunken);font-family:inherit;min-width:0}
+.rec-ing-del{background:none;border:none;color:var(--color-danger);font-size:18px;cursor:pointer;line-height:1}
+.web-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--color-dark);color:var(--color-on-dark);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:200}
+.web-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 `;
 
   const SCRIPT = `
@@ -2223,9 +2269,23 @@ var currentWeek='';
 var collapsed=false;
 var donutChart=null;
 var pollTimer=null;
+var WHO='';            // current user name (for /api/toggle attribution)
+var CURRENCY='RON';    // current user currency pref (from /auth/me)
+var CUR_SYM={RON:'RON',EUR:'€',USD:'$'};
 
 function ge(id){return document.getElementById(id);}
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Format a numeric price with the user's currency: RON as suffix, €/$ as prefix.
+function fmtPrice(n){n=Math.round(Number(n)||0);if(CURRENCY==='RON')return n+' RON';return (CUR_SYM[CURRENCY]||'')+n;}
+function apiPost(path,body){return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(function(r){if(!r.ok)throw new Error('http');return r.json();});}
+// Fire a mutation, then re-pull the merged /api/state so every view stays in sync.
+function mutate(path,body){return apiPost(path,body).then(function(){return fetchState();}).catch(function(){setSync('err');});}
+// ── modal ──
+function openModal(title,bodyHtml,footHtml){ge('modalBox').innerHTML='<div class="modal-head"><div class="modal-title">'+esc(title)+'</div><button class="modal-x" id="modalX">&times;</button></div><div class="modal-body">'+bodyHtml+'</div><div class="modal-foot">'+footHtml+'</div>';ge('modalOverlay').classList.add('on');ge('modalX').addEventListener('click',closeModal);}
+function closeModal(){ge('modalOverlay').classList.remove('on');ge('modalBox').innerHTML='';}
+function webToast(msg){var t=ge('webToast');if(!t)return;t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},1800);}
+function sectionOptions(sel){var o='';GROCERY.forEach(function(s){o+='<option value="'+s.id+'"'+(s.id===sel?' selected':'')+'>'+esc(s.section)+'</option>';});o+='<option value="manual"'+(sel==='manual'?' selected':'')+'>Autre</option>';return o;}
 
 // ── ISO week (UTC, same as Worker) ──
 function isoWeekKey(d){var x=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));var n=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-n);var ys=new Date(Date.UTC(x.getUTCFullYear(),0,1));var w=Math.ceil((((x-ys)/86400000)+1)/7);return x.getUTCFullYear()+'-W'+(w<10?'0':'')+w;}
@@ -2255,7 +2315,7 @@ function recentPrices(){var prices=WS.prices||{};var ids=Object.keys(prices).sli
 
 function renderOverview(){
   var t=macroTotals();var b=budgetData();
-  var rows=recentPrices().map(function(r){return '<div class="prow"><span class="pn">'+r.name+'</span><span class="ps">'+r.section+'</span><span class="pp">'+r.price+' RON</span></div>';}).join('');
+  var rows=recentPrices().map(function(r){return '<div class="prow"><span class="pn">'+esc(r.name)+'</span><span class="ps">'+esc(r.section)+'</span><span class="pp">'+fmtPrice(r.price)+'</span></div>';}).join('');
   if(!rows)rows='<div class="muted" style="padding:14px 0">Aucun prix enregistré pour l\\'instant.</div>';
   var legend=b.segs.map(function(s,i){return '<span class="lg"><span class="sw" style="background:'+DONUT_COLORS[i%DONUT_COLORS.length]+'"></span>'+s.name+' '+Math.round(s.val)+'</span>';}).join('');
   if(!legend)legend='<span class="muted">Aucune dépense</span>';
@@ -2270,22 +2330,73 @@ function renderDonut(segs,spent,ceiling){
   var data=segs.map(function(s){return s.val;});var labels=segs.map(function(s){return s.name;});
   if(donutChart){donutChart.destroy();donutChart=null;}
   donutChart=new Chart(ctx,{type:'doughnut',data:{labels:labels.length?labels:['—'],datasets:[{data:data.length?data:[1],backgroundColor:data.length?DONUT_COLORS:['#E0D4B8'],borderWidth:0}]},options:{cutout:'64%',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:data.length>0}}}});
-  ge('donutCenter').innerHTML='<div class="dc-val">'+Math.round(spent)+' RON</div><div class="dc-sub">/ '+ceiling+' RON</div>';
+  ge('donutCenter').innerHTML='<div class="dc-val">'+fmtPrice(spent)+'</div><div class="dc-sub">/ '+fmtPrice(ceiling)+'</div>';
 }
 
 function renderShopping(){
   var ck=WS.checked||{};
-  var html='<div class="gtable"><div class="gt-head"><div></div><div>Article</div><div>Quantité</div><div>Prix</div><div>Coché par</div></div>';
+  var html='<div class="shop-bar"><button class="shop-add" id="shopAdd">+ Ajouter un article</button></div>';
+  html+='<div class="gtable"><div class="gt-head"><div></div><div>Article</div><div>Quantité</div><div>Prix</div><div>Coché par</div></div>';
   GROCERY.forEach(function(sec){
-    html+='<div class="gt-sec">'+sec.icon+' '+sec.section+'</div>';
+    html+='<div class="gt-sec">'+sec.icon+' '+esc(sec.section)+'</div>';
     sec.items.forEach(function(it){var c=ck[it.id];
-      html+='<div class="gt-row'+(c?' done':'')+'"><div><span class="gt-check'+(c?' on':'')+'">'+(c?'&#10003;':'')+'</span></div><div class="gt-name">'+it.name+'</div><div>'+it.qty+'</div><div class="gt-price">'+priceOf(it.id)+' RON</div><div>'+(c?c.by:'—')+'</div></div>';
+      html+='<div class="gt-row'+(c?' done':'')+'">'
+        +'<div><span class="gt-check'+(c?' on':'')+'" data-tg="'+it.id+'">'+(c?'&#10003;':'')+'</span></div>'
+        +'<div class="gt-name">'+esc(it.name)+'</div>'
+        +'<div>'+esc(it.qty)+'</div>'
+        +'<div class="gt-price" data-price="'+it.id+'" title="Modifier le prix">'+fmtPrice(priceOf(it.id))+'</div>'
+        +'<div>'+(c?esc(c.by):'—')+'</div></div>';
     });
   });
   var mans=WS.manualItems||[];
-  if(mans.length){html+='<div class="gt-sec">&#9998; Ajoutés manuellement</div>';mans.forEach(function(m){var c=ck[m.id];html+='<div class="gt-row'+(c?' done':'')+'"><div><span class="gt-check'+(c?' on':'')+'">'+(c?'&#10003;':'')+'</span></div><div class="gt-name">'+m.name+'</div><div>'+(m.qty||'')+'</div><div>—</div><div>'+(c?c.by:'—')+'</div></div>';});}
+  if(mans.length){html+='<div class="gt-sec">&#9998; Ajoutés manuellement</div>';
+    mans.forEach(function(m){var c=ck[m.id];
+      html+='<div class="gt-row'+(c?' done':'')+'">'
+        +'<div><span class="gt-check'+(c?' on':'')+'" data-tg="'+m.id+'">'+(c?'&#10003;':'')+'</span></div>'
+        +'<div class="gt-name">'+esc(m.name)+'</div>'
+        +'<div>'+esc(m.qty||'')+'</div>'
+        +'<div class="gt-act"><button class="gt-ico-btn" data-medit="'+m.id+'" title="Modifier">&#9998;</button><button class="gt-ico-btn" data-mdel="'+m.id+'" title="Supprimer">&#128465;</button></div>'
+        +'<div>'+(c?esc(c.by):'—')+'</div></div>';
+    });
+  }
   html+='</div>';
   ge('viewShopping').innerHTML=html;
+  ge('shopAdd').addEventListener('click',openAddItem);
+  document.querySelectorAll('#viewShopping [data-tg]').forEach(function(el){el.addEventListener('click',function(){wToggle(el.getAttribute('data-tg'));});});
+  document.querySelectorAll('#viewShopping [data-price]').forEach(function(el){el.addEventListener('click',function(){openPriceEdit(el);});});
+  document.querySelectorAll('#viewShopping [data-medit]').forEach(function(el){el.addEventListener('click',function(){openEditItem(el.getAttribute('data-medit'));});});
+  document.querySelectorAll('#viewShopping [data-mdel]').forEach(function(el){el.addEventListener('click',function(){if(confirm('Supprimer cet article ?'))mutate('/api/delete-item',{id:el.getAttribute('data-mdel')});});});
+}
+// Optimistic toggle: flip locally for instant feedback, then POST + reconcile.
+function wToggle(id){var ck=WS.checked||{};if(ck[id])delete ck[id];else ck[id]={by:(WHO||'Web'),at:''};WS.checked=ck;renderShopping();apiPost('/api/toggle',{id:id,user:(WHO||'Web')}).then(function(){fetchState();}).catch(function(){fetchState();});}
+// Inline price edit: swap the cell for a number input; commit on blur/Enter.
+function openPriceEdit(el){
+  var id=el.getAttribute('data-price');var cur=priceOf(id);var done=false;
+  el.innerHTML='<input class="price-input" type="number" inputmode="decimal" value="'+cur+'">';
+  var inp=el.querySelector('input');inp.focus();inp.select();
+  function commit(){if(done)return;done=true;var v=Number(inp.value);if(isNaN(v))v=cur;mutate('/api/update-price',{id:id,price:v});}
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();inp.blur();}else if(e.key==='Escape'){done=true;renderShopping();}});
+}
+function openAddItem(){
+  openModal('Ajouter un article',
+     '<div class="fld"><label>Nom</label><input id="aiName" placeholder="Houmous"></div>'
+    +'<div class="fld"><label>Quantité</label><input id="aiQty" placeholder="1 pot"></div>'
+    +'<div class="fld"><label>Rayon</label><select id="aiSec">'+sectionOptions('manual')+'</select></div>',
+     '<button class="mbtn" id="aiCancel">Annuler</button><button class="mbtn primary" id="aiSave">Ajouter</button>');
+  ge('aiName').focus();
+  ge('aiCancel').addEventListener('click',closeModal);
+  ge('aiSave').addEventListener('click',function(){var n=ge('aiName').value.trim();if(!n){ge('aiName').focus();return;}mutate('/api/add-item',{name:n,qty:ge('aiQty').value.trim(),sectionId:ge('aiSec').value,user:(WHO||'Web')});closeModal();});
+}
+function openEditItem(id){
+  var m=(WS.manualItems||[]).filter(function(x){return x.id===id;})[0];if(!m)return;
+  openModal('Modifier l’article',
+     '<div class="fld"><label>Nom</label><input id="eiName" value="'+esc(m.name)+'"></div>'
+    +'<div class="fld"><label>Quantité</label><input id="eiQty" value="'+esc(m.qty||'')+'"></div>'
+    +'<div class="fld"><label>Rayon</label><select id="eiSec">'+sectionOptions(m.sectionId||'manual')+'</select></div>',
+     '<button class="mbtn danger" id="eiDel">Supprimer</button><button class="mbtn primary" id="eiSave">Enregistrer</button>');
+  ge('eiSave').addEventListener('click',function(){mutate('/api/edit-item',{id:id,name:ge('eiName').value.trim(),qty:ge('eiQty').value.trim(),sectionId:ge('eiSec').value});closeModal();});
+  ge('eiDel').addEventListener('click',function(){mutate('/api/delete-item',{id:id});closeModal();});
 }
 
 function renderPlanning(){
@@ -2294,21 +2405,70 @@ function renderPlanning(){
   DAYS.forEach(function(d){var isT=(wk===realWk&&d===tk);html+='<div class="cal-day'+(isT?' today':'')+'">'+DAY_FR[d]+'<br><span>'+dates[d].getUTCDate()+'</span></div>';});
   SLOTS.forEach(function(slot){
     html+='<div class="cal-slot">'+SLOT_FR[slot]+'</div>';
-    DAYS.forEach(function(d){var m=plan[d][slot];html+='<div class="cal-cell '+(SLOT_CLASS[slot]||'')+'">'+(m.name||'')+'</div>';});
+    DAYS.forEach(function(d){var m=plan[d][slot];html+='<div class="cal-cell '+(SLOT_CLASS[slot]||'')+'" data-day="'+d+'" data-slot="'+slot+'" title="Modifier">'+esc(m.name||'')+'</div>';});
   });
   html+='</div></div>';
   ge('viewPlanning').innerHTML=html;
+  document.querySelectorAll('#viewPlanning [data-day]').forEach(function(el){el.addEventListener('click',function(){openMealEdit(el.getAttribute('data-day'),el.getAttribute('data-slot'));});});
+}
+function openMealEdit(day,slot){
+  var plan=planForWeek(currentWeek);var m=(plan[day]&&plan[day][slot])||{name:'',detail:'',time:'',type:'free'};
+  var types=[['prep','Préparation'],['cook','Cuisson'],['batch','Batch'],['free','Libre']];
+  var topts=types.map(function(t){return '<option value="'+t[0]+'"'+(m.type===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('');
+  openModal((DAY_FR[day]||day)+' · '+(SLOT_FR[slot]||slot),
+     '<div class="fld"><label>Plat</label><input id="meName" value="'+esc(m.name||'')+'"></div>'
+    +'<div class="fld"><label>Détail</label><textarea id="meDetail">'+esc(m.detail||'')+'</textarea></div>'
+    +'<div class="fld"><label>Durée</label><input id="meTime" value="'+esc(m.time||'')+'" placeholder="15 min"></div>'
+    +'<div class="fld"><label>Type</label><select id="meType">'+topts+'</select></div>',
+     '<button class="mbtn" id="meCancel">Annuler</button><button class="mbtn primary" id="meSave">Enregistrer</button>');
+  ge('meCancel').addEventListener('click',closeModal);
+  ge('meSave').addEventListener('click',function(){mutate('/api/update-meal',{week:currentWeek,day:day,slot:slot,meal:{name:ge('meName').value.trim(),detail:ge('meDetail').value.trim(),time:ge('meTime').value.trim(),type:ge('meType').value}});closeModal();});
 }
 
 function renderRecipes(){
-  var list=(WS.recipes&&WS.recipes.length)?WS.recipes:RECIPES;
-  var html='<div class="rec-grid">';
+  var usingDefaults=!(WS.recipes&&WS.recipes.length);
+  var list=usingDefaults?RECIPES:WS.recipes;
+  var html='<div class="rec-bar"><button class="shop-add" id="recNew">+ Nouvelle recette</button></div><div class="rec-grid">';
   list.forEach(function(r){
-    var img=r.image||'';var thumb=(img.indexOf('http')===0)?'<div class="rec-thumb" style="padding:0"><img src="'+img+'" style="width:100%;height:96px;object-fit:cover"></div>':'<div class="rec-thumb">'+(img||'🍽️')+'</div>';
-    html+='<div class="rec-card">'+thumb+'<div class="rec-body"><div class="rec-name">'+(r.name||'')+'</div><div class="rec-meta">'+((r.ingredients||[]).length)+' ingrédients · '+(r.servings||2)+' portions</div><button class="rec-btn" disabled title="Lecture seule (web)">+ Ajouter au panier</button></div></div>';
+    var img=r.image||r.emoji||'';var thumb=(String(img).indexOf('http')===0)?'<div class="rec-thumb" style="padding:0"><img src="'+esc(img)+'" style="width:100%;height:96px;object-fit:cover"></div>':'<div class="rec-thumb">'+(img||'🍽️')+'</div>';
+    html+='<div class="rec-card">'+thumb+'<div class="rec-body"><div class="rec-name">'+esc(r.name||'')+'</div><div class="rec-meta">'+((r.ingredients||[]).length)+' ingrédients · '+(r.servings||2)+' portions</div>'
+      +'<button class="rec-btn" data-cart="'+esc(r.id)+'">+ Ajouter au panier</button>'
+      +'<div class="rec-actions"><button class="rec-mini" data-redit="'+esc(r.id)+'">Modifier</button><button class="rec-mini" data-rdel="'+esc(r.id)+'">Supprimer</button></div>'
+      +'</div></div>';
   });
   html+='</div>';
+  if(usingDefaults)html+='<div class="muted" style="margin-top:12px">Recettes d’exemple — modifie-les ou crée la tienne pour les enregistrer dans ton foyer.</div>';
   ge('viewRecipes').innerHTML=html;
+  ge('recNew').addEventListener('click',function(){openRecipeEdit(null);});
+  document.querySelectorAll('#viewRecipes [data-cart]').forEach(function(el){el.addEventListener('click',function(){el.disabled=true;el.textContent='Ajout…';mutate('/api/recipe-to-cart',{id:el.getAttribute('data-cart')}).then(function(){webToast('Ajouté au panier ✓');});});});
+  document.querySelectorAll('#viewRecipes [data-redit]').forEach(function(el){el.addEventListener('click',function(){openRecipeEdit(el.getAttribute('data-redit'));});});
+  document.querySelectorAll('#viewRecipes [data-rdel]').forEach(function(el){el.addEventListener('click',function(){if(confirm('Supprimer cette recette ?'))mutate('/api/delete-recipe',{id:el.getAttribute('data-rdel')});});});
+}
+function recipeById(id){var l=(WS.recipes&&WS.recipes.length)?WS.recipes:RECIPES;return l.filter(function(r){return r.id===id;})[0];}
+function ingRowHtml(ing){ing=ing||{};return '<div class="rec-ing-row"><input class="ri-name" placeholder="Ingrédient" value="'+esc(ing.name||'')+'"><input class="ri-qty" placeholder="100g" value="'+esc(ing.qty||'')+'"><select class="ri-sec">'+sectionOptions(ing.sectionId||'manual')+'</select><button class="rec-ing-del" type="button" title="Retirer">&times;</button></div>';}
+function openRecipeEdit(id){
+  var r=id?recipeById(id):null;var isNew=!r;
+  var ings=(r&&r.ingredients&&r.ingredients.length)?r.ingredients:[{}];
+  openModal(isNew?'Nouvelle recette':'Modifier la recette',
+     '<div class="fld"><label>Nom</label><input id="rcName" value="'+esc(r?r.name:'')+'"></div>'
+    +'<div class="fld"><label>Emoji ou URL image</label><input id="rcImg" value="'+esc(r?(r.image||r.emoji||''):'')+'" placeholder="🍝 ou https://…"></div>'
+    +'<div class="fld"><label>Portions</label><input id="rcServ" type="number" value="'+esc(r?(r.servings||2):2)+'"></div>'
+    +'<div class="fld"><label>Ingrédients</label><div id="rcIngs">'+ings.map(ingRowHtml).join('')+'</div><button class="rec-mini" id="rcAddIng" type="button" style="margin-top:8px;flex:none;padding:7px 12px">+ Ingrédient</button></div>',
+     (isNew?'<button class="mbtn" id="rcCancel">Annuler</button>':'<button class="mbtn danger" id="rcDel">Supprimer</button>')+'<button class="mbtn primary" id="rcSave">Enregistrer</button>');
+  // one delegated listener handles every ingredient row's delete button
+  ge('rcIngs').addEventListener('click',function(e){if(e.target&&e.target.classList.contains('rec-ing-del')){var rows=ge('rcIngs').querySelectorAll('.rec-ing-row');if(rows.length>1){var row=e.target.parentNode;row.parentNode.removeChild(row);}}});
+  ge('rcAddIng').addEventListener('click',function(){var tmp=document.createElement('div');tmp.innerHTML=ingRowHtml({});ge('rcIngs').appendChild(tmp.firstChild);});
+  if(ge('rcCancel'))ge('rcCancel').addEventListener('click',closeModal);
+  if(ge('rcDel'))ge('rcDel').addEventListener('click',function(){mutate('/api/delete-recipe',{id:id});closeModal();});
+  ge('rcSave').addEventListener('click',function(){
+    var name=ge('rcName').value.trim();if(!name){ge('rcName').focus();return;}
+    var ingredients=[];
+    document.querySelectorAll('#rcIngs .rec-ing-row').forEach(function(row){var nm=row.querySelector('.ri-name').value.trim();if(!nm)return;ingredients.push({name:nm,qty:row.querySelector('.ri-qty').value.trim(),sectionId:row.querySelector('.ri-sec').value});});
+    // editing a saved recipe keeps its id; a brand-new one (or an example dr*) gets a fresh id
+    var rid=(id&&String(id).indexOf('dr')!==0)?id:('r_'+Date.now());
+    mutate('/api/save-recipe',{recipe:{id:rid,name:name,image:ge('rcImg').value.trim(),servings:Number(ge('rcServ').value)||2,ingredients:ingredients}});
+    closeModal();
+  });
 }
 
 function renderCurrent(){
@@ -2335,7 +2495,7 @@ function renderProfileWeb(){
   }).catch(function(){ge('viewProfile').innerHTML='<div class="card">Session expirée. <a href="/login">Se reconnecter</a></div>';});
 }
 function wCreateInvite(){var b=ge('wpfInvite');b.disabled=true;b.textContent='…';fetch('/api/invite/create',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(r){return r.json();}).then(function(d){ge('wpfInviteBox').innerHTML='<div class="wpf-invite"><input id="wpfLink" readonly value="'+d.inviteUrl+'"><button class="wpf-copy" id="wpfCopy">Copier</button></div>';b.style.display='none';ge('wpfCopy').addEventListener('click',function(){var i=ge('wpfLink');i.select();if(navigator.clipboard){navigator.clipboard.writeText(i.value);ge('wpfCopy').textContent='Copié ✓';}});}).catch(function(){b.disabled=false;b.textContent='+ Inviter un partenaire';});}
-function wSavePrefs(p){fetch('/api/user/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(){renderProfileWeb();}).catch(function(){});}
+function wSavePrefs(p){if(p.currency)CURRENCY=p.currency;return apiPost('/api/user/prefs',p).then(function(){renderProfileWeb();}).catch(function(){});}
 
 function showView(v){
   if(VIEWS.indexOf(v)<0)v='overview';
@@ -2350,8 +2510,10 @@ function showView(v){
 function setSync(s){var c=ge('syncChip');if(!c)return;c.className='sync-chip '+(s==='ok'?'ok':'err');c.querySelector('.lbl').textContent=(s==='ok'?'Synced':'Hors ligne');}
 
 function fetchState(){
-  fetch('/api/state').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WS=d;setSync('ok');renderCurrent();}).catch(function(){setSync('err');});
+  return fetch('/api/state').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WS=d;setSync('ok');renderCurrent();}).catch(function(){setSync('err');});
 }
+// Pull the current user's name (toggle attribution) + currency pref before first paint.
+function loadMe(){return fetch('/auth/me').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WHO=d.name||'';CURRENCY=d.currency||'RON';}).catch(function(){});}
 
 (function init(){
   currentWeek=currentISOWeek();
@@ -2364,8 +2526,10 @@ function fetchState(){
   ge('wkNext').addEventListener('click',function(){currentWeek=addWeeks(currentWeek,1);ge('weekLbl').textContent=weekLabel(currentWeek);renderCurrent();});
   // hash routing
   window.addEventListener('hashchange',function(){showView((location.hash||'#overview').slice(1));});
+  // close the modal on overlay backdrop click
+  ge('modalOverlay').addEventListener('click',function(e){if(e.target===ge('modalOverlay'))closeModal();});
   showView((location.hash||'#overview').slice(1));
-  fetchState();
+  loadMe().then(function(){fetchState();});
   pollTimer=setInterval(fetchState,5000);
 })();
 `;
@@ -2417,6 +2581,8 @@ function fetchState(){
     </div>
   </main>
 </div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+<div class="web-toast" id="webToast"></div>
 <script>${SCRIPT}</script>
 </body>
 </html>`;
@@ -2788,11 +2954,16 @@ export default {
       const u = await getUser(request, env);
       if (!u) return jsonRes({ error: 'unauthorized' }, 401);
       const prof = await profileFor(u.userId, u.token, env);
+      // ALL members of the household, not just the requester. Relies on the
+      // household-wide profiles SELECT RLS policy (see migration 0002).
       let members = [];
       if (prof && prof.householdId) {
-        const mr = await supabase(env, 'profiles?household_id=eq.' + prof.householdId + '&select=id,name', {}, u.token);
+        const mr = await supabase(env, 'profiles?household_id=eq.' + prof.householdId + '&select=id,name&order=created_at', {}, u.token);
         if (mr.ok) members = (await mr.json()).map(m => ({ userId: m.id, name: m.name }));
       }
+      // Defensive: the requester must always appear exactly once, even if RLS
+      // momentarily returns a partial set right after an invite is accepted.
+      if (!members.some(m => m.userId === u.userId)) members.unshift({ userId: u.userId, name: u.name });
       return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', members });
     }
 
@@ -2879,9 +3050,15 @@ export default {
 
     /**
      * GET /
-     * Serve the full self-contained PWA HTML document.
+     * Mobile PWA is native-only now. Serve the mobile HTML only when the request
+     * comes from the iOS/Android WebView (identified by the X-NutriPair-Native: 1
+     * header the app injects, with a User-Agent marker as a robust fallback).
+     * A plain browser is redirected (302) to the desktop dashboard at /web.
      */
     if (path === '/' || path === '') {
+      const ua = request.headers.get('User-Agent') || '';
+      const isNative = request.headers.get('X-NutriPair-Native') === '1' || ua.indexOf('NutriPairNative') >= 0;
+      if (!isNative) return redirectRes('/web');
       return new Response(buildHTML(), {
         headers: {'Content-Type':'text/html;charset=UTF-8', 'Cache-Control':'no-store'}
       });
