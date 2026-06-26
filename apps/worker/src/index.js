@@ -77,6 +77,23 @@ const GROCERY_DATA = [
     {id:'g63', name:'Cacao en poudre',                     name_en:'Cocoa powder',              name_ro:'Cacao pudră',                              qty:'100 g',            price:10, badge:null},
     {id:'g64', name:'Levure chimique',                     name_en:'Baking powder',             name_ro:'Praf de copt',                             qty:'1 sachet',         price:4,  badge:null},
     {id:'g65', name:"Extrait de vanille",                 name_en:'Vanilla extract',           name_ro:'Esență de vanilie',                        qty:'1 flacon',         price:8,  badge:null},
+  ]},
+  { id:'s6', section:'Maison & Entretien', section_en:'Household & Cleaning', section_ro:'Casă & Curățenie', icon:'🏠', items:[
+    {id:'g66', name:'Liquide vaisselle',          name_en:'Dish soap',               name_ro:'Detergent de vase',          qty:'500 ml',     price:12, badge:null},
+    {id:'g67', name:'Éponges',                    name_en:'Sponges',                 name_ro:'Bureți',                     qty:'1 paquet',   price:8,  badge:null},
+    {id:'g68', name:'Papier essuie-tout',         name_en:'Paper towels',            name_ro:'Prosoape de hârtie',         qty:'1 rouleau',  price:7,  badge:null},
+    {id:'g69', name:'Sacs poubelle',              name_en:'Trash bags',              name_ro:'Saci de gunoi',              qty:'1 paquet',   price:12, badge:null},
+    {id:'g70', name:'Lessive (capsules)',         name_en:'Laundry detergent (pods)',name_ro:'Detergent rufe (capsule)',   qty:'1 boîte',    price:35, badge:null},
+    {id:'g71', name:'Nettoyant multi-surfaces',   name_en:'Multi-surface cleaner',   name_ro:'Soluție multi-suprafețe',    qty:'1 spray',    price:14, badge:null},
+    {id:'g72', name:'Papier toilette',            name_en:'Toilet paper',            name_ro:'Hârtie igienică',            qty:'1 paquet',   price:18, badge:null},
+    {id:'g73', name:'Sel lave-vaisselle',         name_en:'Dishwasher salt',         name_ro:'Sare pentru mașina de vase', qty:'1 kg',       price:8,  badge:null},
+    {id:'g74', name:'Liquide lave-vaisselle',     name_en:'Dishwasher rinse aid',    name_ro:'Soluție mașina de vase',     qty:'500 ml',     price:14, badge:null},
+    {id:'g75', name:'Vinaigre blanc',             name_en:'White vinegar',           name_ro:'Oțet alb',                   qty:'1 L',        price:5,  badge:null},
+    {id:'g76', name:'Bicarbonate de soude',       name_en:'Baking soda',             name_ro:'Bicarbonat de sodiu',        qty:'500 g',      price:7,  badge:null},
+    {id:'g77', name:'Film alimentaire',           name_en:'Cling film',              name_ro:'Folie alimentară',           qty:'1 rouleau',  price:6,  badge:null},
+    {id:'g78', name:'Sacs de congélation',        name_en:'Freezer bags',            name_ro:'Pungi de congelare',         qty:'1 paquet',   price:8,  badge:null},
+    {id:'g79', name:'Bougies / diffuseur',        name_en:'Candles / diffuser',      name_ro:'Lumânări / difuzor',         qty:'1',          price:20, badge:null},
+    {id:'g80', name:'Dentifrice',                 name_en:'Toothpaste',              name_ro:'Pastă de dinți',             qty:'1 tube',     price:12, badge:null},
   ]}
 ];
 
@@ -192,7 +209,7 @@ const DEFAULT_RECIPES = [
     ]},
 ];
 
-const DEFAULT_STATE = { checked:{}, manualItems:[], plan: DEFAULT_PLAN, prices:{}, recipes:[], itemOverrides:{}, manualHistory:[], resetAt: null };
+const DEFAULT_STATE = { checked:{}, manualItems:[], plan: DEFAULT_PLAN, prices:{}, recipes:[], itemOverrides:{}, hiddenItems:[], manualHistory:[], resetAt: null };
 
 const I18N = {
   fr:{
@@ -956,6 +973,15 @@ function updateLangUI() {
     var row = btn.closest('.rec-ing-row');
     if (row && row.parentNode) row.parentNode.removeChild(row);
   });
+  // catalog autocomplete (#3): typing an ingredient matches GROCERY_DATA → set item_id + section + price hint
+  (function(){ var o=''; GROCERY.forEach(function(s){ s.items.forEach(function(it){ o += '<option value="' + escAttr(nameOf(it)) + '">'; }); }); document.body.insertAdjacentHTML('beforeend', '<datalist id="mobCatDL">' + o + '</datalist>'); })();
+  ge('recIngredients').addEventListener('input', function(e){
+    if (!e.target || !e.target.classList.contains('rec-ing-name')) return;
+    var row = e.target.closest('.rec-ing-row'); var hit = catByNameM(e.target.value);
+    if (hit) { row.setAttribute('data-item-id', hit.id); var sel = row.querySelector('.rec-ing-cat'); if (sel) sel.value = hit.sec;
+      var pr = (state.prices || {})[hit.id]; e.target.title = pr ? ('≈ ' + pr + ' RON · catalogue') : 'catalogue'; }
+    else { row.setAttribute('data-item-id', ''); e.target.title = ''; }
+  });
   ge('recCancelBtn').addEventListener('click', function(){ ge('recipeModal').classList.remove('open'); editingRecipeId = null; });
   ge('recSaveBtn').addEventListener('click', saveRecipe);
   ge('recipeModal').addEventListener('click', function(e){ if (e.target === this) { this.classList.remove('open'); editingRecipeId = null; } });
@@ -1148,7 +1174,8 @@ function itemRowHTML(id, name, qty, badge, price, c) {
        + '<div class="item-info"><div class="item-name">' + name + '</div>'
        + '<div class="item-qty">' + meta + '</div>' + getBadge(badge) + '</div>'
        + '<div class="item-price" data-price-id="' + id + '" data-price="' + price + '">' + price + ' RON</div>'
-       + '<button class="mi-btn mi-edit-cat" data-edit-cat="' + id + '">&#9998;</button>'
+       + '<div class="manual-actions"><button class="mi-btn mi-edit-cat" data-edit-cat="' + id + '">&#9998;</button>'
+       + '<button class="mi-btn mi-del-cat" data-del-cat="' + id + '">&#128465;</button></div>'
        + '</div>';
 }
 
@@ -1196,16 +1223,20 @@ function renderGrocery() {
   });
 
   GROCERY.forEach(function(sec) {
-    var unchecked = [], checkedItems = [];
+    var secManual = manualBySection[sec.id] || [];
+    var unchecked = [], checkedItems = [], visible = 0;
     sec.items.forEach(function(item) {
+      if (isHiddenM(item.id)) return;              // hidden ("removed") catalog items
+      visible++;
       var p = priceOf(item);
       total++; tprice += p;
       var c = ck[item.id];
       if (c) { done++; cprice += p; checkedItems.push(item); }
       else { unchecked.push(item); }
     });
-    var allDone   = sec.items.length > 0 && checkedItems.length === sec.items.length;
-    var remaining = sec.items.length - checkedItems.length;
+    if (visible === 0 && secManual.length === 0) return;   // skip fully-empty sections
+    var allDone   = visible > 0 && checkedItems.length === visible;
+    var remaining = visible - checkedItems.length;
     var sectionLabel = (lang === 'ro' && sec.section_ro) ? sec.section_ro
                      : (lang === 'en' && sec.section_en) ? sec.section_en
                      : sec.section;
@@ -1222,7 +1253,6 @@ function renderGrocery() {
     });
 
     // manual items assigned to this section (after the regular items)
-    var secManual = manualBySection[sec.id] || [];
     secManual.forEach(function(m) {
       total++;
       var c = ck[m.id];
@@ -1279,6 +1309,10 @@ function renderGrocery() {
   document.querySelectorAll('.mi-edit-cat').forEach(function(b) {
     b.addEventListener('click', function(ev){ ev.stopPropagation(); openEditCatalog(b.getAttribute('data-edit-cat')); });
   });
+  // remove (hide) a catalog item from the list
+  document.querySelectorAll('.mi-del-cat').forEach(function(b) {
+    b.addEventListener('click', function(ev){ ev.stopPropagation(); deleteCatalog(b.getAttribute('data-del-cat')); });
+  });
 
   var pct = total > 0 ? Math.round(done / total * 100) : 0;
   ge('progressFill').style.width = pct + '%';
@@ -1333,7 +1367,7 @@ function savePrice(id, price, el) {
 function showTotals() {
   var ck = state.checked || {};
   var total = 0, done = 0, tprice = 0, cprice = 0;
-  GROCERY.forEach(function(sec){ sec.items.forEach(function(item){ var p = priceOf(item); total++; tprice += p; if (ck[item.id]) { done++; cprice += p; } }); });
+  GROCERY.forEach(function(sec){ sec.items.forEach(function(item){ if (isHiddenM(item.id)) return; var p = priceOf(item); total++; tprice += p; if (ck[item.id]) { done++; cprice += p; } }); });
   (state.manualItems || []).forEach(function(m){ total++; if (ck[m.id]) done++; });
   var pct = total > 0 ? Math.round(done / total * 100) : 0;
   ge('progressFill').style.width = pct + '%';
@@ -1343,6 +1377,16 @@ function showTotals() {
 
 function deleteManual(id) {
   var W_DEL = {fr:'Supprimer cet article ?', en:'Delete this item?', ro:'Ștergi acest articol?'};
+  if (!confirm(W_DEL[lang] || W_DEL.fr)) return;
+  setSyncState('syncing');
+  apiPost('/api/delete-item', {id:id})
+    .then(function(d){ state = d; renderAll(true); setSyncState('ok'); })
+    .catch(function(){ setSyncState('err'); showToast(T.toastErr, true); });
+}
+function isHiddenM(id) { return ((state.hiddenItems) || []).indexOf(id) >= 0; }
+// Hide a catalog item from the list (reversible via quick-add). Same /api/delete-item route.
+function deleteCatalog(id) {
+  var W_DEL = {fr:'Retirer cet article de la liste ?', en:'Remove this item from the list?', ro:'Elimini acest articol din listă?'};
   if (!confirm(W_DEL[lang] || W_DEL.fr)) return;
   setSyncState('syncing');
   apiPost('/api/delete-item', {id:id})
@@ -1588,12 +1632,14 @@ function recIngRowHTML(ing) {
   var W_N = {fr:'Ingrédient', en:'Ingredient', ro:'Ingredient'};
   var W_Q = {fr:'Qté', en:'Qty', ro:'Cant.'};
   return '<div class="rec-ing-row" data-item-id="' + escAttr(ing.itemId || '') + '">'
-       + '<input class="rec-ing-name" placeholder="' + (W_N[lang] || W_N.fr) + '" value="' + escAttr(ingName(ing)) + '">'
+       + '<input class="rec-ing-name" list="mobCatDL" placeholder="' + (W_N[lang] || W_N.fr) + '" value="' + escAttr(ingName(ing)) + '">'
        + '<input class="rec-ing-qty" placeholder="' + (W_Q[lang] || W_Q.fr) + '" value="' + escAttr(ing.qty || '') + '">'
        + '<select class="rec-ing-cat">' + catOptions(ing.sectionId || 'manual') + '</select>'
        + '<button class="rec-ing-del" type="button">&times;</button>'
        + '</div>';
 }
+// Catalogue lookup by current-language name → { id, sec } (recipe ingredient autocomplete).
+function catByNameM(nm) { nm = (nm || '').trim().toLowerCase(); var r = null; GROCERY.forEach(function(s){ s.items.forEach(function(it){ if (nameOf(it).toLowerCase() === nm) r = {id:it.id, sec:s.id}; }); }); return r; }
 
 // ── PROFILE (auth) ──
 function initialsOf(name) { name = (name || '').trim(); if (!name) return '?'; var p = name.split(/\\s+/); return (p[0].charAt(0) + (p[1] ? p[1].charAt(0) : '')).toUpperCase(); }
@@ -2275,8 +2321,17 @@ body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-t
 .wpf-invite input{flex:1;min-width:0;padding:10px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-sunken);font-size:12px;color:var(--color-text)}
 .wpf-copy{background:var(--color-primary);color:#fff;border:none;border-radius:10px;padding:0 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
 /* ── editable web dashboard: shopping affordances, modals, toast ── */
-.shop-bar,.rec-bar{display:flex;justify-content:flex-end;margin-bottom:14px}
+.shop-bar,.rec-bar{display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px}
 .shop-add{background:var(--color-primary);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.shop-toggle{background:var(--color-surface);color:var(--color-text-muted);border:1.5px solid var(--color-border);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer}
+.gt-by{font-size:11px;font-weight:400;color:var(--color-text-muted)}
+.ai-results{max-height:300px;overflow-y:auto;margin:4px 0 8px;border:1px solid var(--color-border);border-radius:10px}
+.ai-item{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--color-surface-sunken)}
+.ai-item:last-child{border-bottom:none}.ai-item:hover{background:var(--color-primary-light)}
+.ai-iname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text);font-weight:500}
+.ai-iqty{font-size:12px;color:var(--color-text-muted);flex-shrink:0}
+.ai-hid{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--color-warning);background:var(--color-warning-light,#FBF1DA);border-radius:9999px;padding:2px 7px;flex-shrink:0}
+.ai-empty{padding:14px;text-align:center;color:var(--color-text-muted);font-size:13px}
 .gt-check{cursor:pointer}
 .gt-price{cursor:pointer}.gt-price:hover{color:var(--color-primary)}
 .gt-act{display:inline-flex;gap:4px;padding:0!important}
@@ -2302,7 +2357,8 @@ body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-t
 .mbtn{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--color-border);background:var(--color-surface);color:var(--color-text)}
 .mbtn.primary{background:var(--color-primary);border-color:var(--color-primary);color:#fff}
 .mbtn.danger{background:var(--color-surface);border-color:var(--color-border);color:var(--color-danger)}
-.rec-ing-row{display:grid;grid-template-columns:1fr 72px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px}
+.rec-ing-row{display:grid;grid-template-columns:1fr 66px 1fr 24px auto;gap:6px;align-items:center;margin-bottom:6px}
+.ri-hint{font-size:10px;font-weight:700;color:var(--color-secondary);white-space:nowrap}
 .rec-ing-row input,.rec-ing-row select{padding:7px 8px;border:1.5px solid var(--color-border);border-radius:8px;font-size:12px;background:var(--color-surface-sunken);font-family:inherit;min-width:0}
 .rec-ing-del{background:none;border:none;color:var(--color-danger);font-size:18px;cursor:pointer;line-height:1}
 .web-toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--color-dark);color:var(--color-on-dark);padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:200}
@@ -2392,39 +2448,68 @@ function renderDonut(segs,spent,ceiling){
   ge('donutCenter').innerHTML='<div class="dc-val">'+fmtPrice(spent)+'</div><div class="dc-sub">/ '+fmtPrice(ceiling)+'</div>';
 }
 
+var showChecked=false;   // web shopping: reveal checked items
+function isHidden(id){return (WS.hiddenItems||[]).indexOf(id)>=0;}
+function ovName(it){var o=WS.itemOverrides&&WS.itemOverrides[it.id];return (o&&o.name)?o.name:it.name;}
+function ovQty(it){var o=WS.itemOverrides&&WS.itemOverrides[it.id];return (o&&o.qty)?o.qty:it.qty;}
 function renderShopping(){
   var ck=WS.checked||{};
-  var html='<div class="shop-bar"><button class="shop-add" id="shopAdd">+ Ajouter un article</button></div>';
-  html+='<div class="gtable"><div class="gt-head"><div></div><div>Article</div><div>Quantité</div><div>Prix</div><div>Coché par</div></div>';
+  var checkedCount=0;
+  GROCERY.forEach(function(sec){sec.items.forEach(function(it){if(!isHidden(it.id)&&ck[it.id])checkedCount++;});});
+  (WS.manualItems||[]).forEach(function(m){if(ck[m.id])checkedCount++;});
+  var html='<div class="shop-bar"><button class="shop-add" id="shopAdd">+ Ajouter un article</button>'
+    +(checkedCount>0?'<button class="shop-toggle" id="shopToggle">'+(showChecked?'Masquer':'Afficher')+' les articles cochés ('+checkedCount+')</button>':'')+'</div>';
+  html+='<div class="gtable"><div class="gt-head"><div></div><div>Article</div><div>Quantité</div><div>Prix</div><div></div></div>';
   GROCERY.forEach(function(sec){
-    html+='<div class="gt-sec">'+sec.icon+' '+esc(sec.section)+'</div>';
-    sec.items.forEach(function(it){var c=ck[it.id];
-      html+='<div class="gt-row'+(c?' done':'')+'">'
+    var rows='';
+    sec.items.forEach(function(it){
+      if(isHidden(it.id))return;                 // hidden ("deleted") catalog items
+      var c=ck[it.id];
+      if(c&&!showChecked)return;                 // checked items hidden by default
+      rows+='<div class="gt-row'+(c?' done':'')+'">'
         +'<div><span class="gt-check'+(c?' on':'')+'" data-tg="'+it.id+'">'+(c?'&#10003;':'')+'</span></div>'
-        +'<div class="gt-name">'+esc(it.name)+'</div>'
-        +'<div>'+esc(it.qty)+'</div>'
+        +'<div class="gt-name">'+esc(ovName(it))+(c&&c.by?' <span class="gt-by">· '+esc(c.by)+'</span>':'')+'</div>'
+        +'<div>'+esc(ovQty(it))+'</div>'
         +'<div class="gt-price" data-price="'+it.id+'" title="Modifier le prix">'+fmtPrice(priceOf(it.id))+'</div>'
-        +'<div>'+(c?esc(c.by):'—')+'</div></div>';
+        +'<div class="gt-act"><button class="gt-ico-btn" data-cedit="'+it.id+'" title="Modifier">&#9998;</button><button class="gt-ico-btn" data-mdel="'+it.id+'" title="Retirer">&#128465;</button></div></div>';
     });
+    if(rows)html+='<div class="gt-sec">'+sec.icon+' '+esc(sec.section)+'</div>'+rows;   // section header only when it has visible rows
   });
-  var mans=WS.manualItems||[];
+  var mans=(WS.manualItems||[]).filter(function(m){return showChecked||!ck[m.id];});
   if(mans.length){html+='<div class="gt-sec">&#9998; Ajoutés manuellement</div>';
     mans.forEach(function(m){var c=ck[m.id];
       html+='<div class="gt-row'+(c?' done':'')+'">'
         +'<div><span class="gt-check'+(c?' on':'')+'" data-tg="'+m.id+'">'+(c?'&#10003;':'')+'</span></div>'
-        +'<div class="gt-name">'+esc(m.name)+'</div>'
-        +'<div>'+esc(m.qty||'')+'</div>'
-        +'<div class="gt-act"><button class="gt-ico-btn" data-medit="'+m.id+'" title="Modifier">&#9998;</button><button class="gt-ico-btn" data-mdel="'+m.id+'" title="Supprimer">&#128465;</button></div>'
-        +'<div>'+(c?esc(c.by):'—')+'</div></div>';
+        +'<div class="gt-name">'+esc(m.name)+(c&&c.by?' <span class="gt-by">· '+esc(c.by)+'</span>':'')+'</div>'
+        +'<div>'+esc(m.qty||'')+'</div><div>—</div>'
+        +'<div class="gt-act"><button class="gt-ico-btn" data-medit="'+m.id+'" title="Modifier">&#9998;</button><button class="gt-ico-btn" data-mdel="'+m.id+'" title="Supprimer">&#128465;</button></div></div>';
     });
   }
   html+='</div>';
   ge('viewShopping').innerHTML=html;
   ge('shopAdd').addEventListener('click',openAddItem);
+  if(ge('shopToggle'))ge('shopToggle').addEventListener('click',function(){showChecked=!showChecked;renderShopping();});
   document.querySelectorAll('#viewShopping [data-tg]').forEach(function(el){el.addEventListener('click',function(){wToggle(el.getAttribute('data-tg'));});});
   document.querySelectorAll('#viewShopping [data-price]').forEach(function(el){el.addEventListener('click',function(){openPriceEdit(el);});});
+  document.querySelectorAll('#viewShopping [data-cedit]').forEach(function(el){el.addEventListener('click',function(){openEditCatalog(el.getAttribute('data-cedit'));});});
   document.querySelectorAll('#viewShopping [data-medit]').forEach(function(el){el.addEventListener('click',function(){openEditItem(el.getAttribute('data-medit'));});});
-  document.querySelectorAll('#viewShopping [data-mdel]').forEach(function(el){el.addEventListener('click',function(){if(confirm('Supprimer cet article ?'))mutate('/api/delete-item',{id:el.getAttribute('data-mdel')});});});
+  document.querySelectorAll('#viewShopping [data-mdel]').forEach(function(el){el.addEventListener('click',function(){if(confirm('Retirer cet article ?'))mutate('/api/delete-item',{id:el.getAttribute('data-mdel')});});});
+}
+// Edit a catalogue item (web): name/qty via override, price via update-price. Category is fixed.
+function openEditCatalog(id){
+  var it=gItem(id);if(!it)return;var sec=SECTION_OF[id];
+  openModal('Modifier l’article',
+     '<div class="fld"><label>Nom</label><input id="ceName" value="'+esc(ovName(it))+'"></div>'
+    +'<div class="fld"><label>Quantité</label><input id="ceQty" value="'+esc(ovQty(it))+'"></div>'
+    +'<div class="fld"><label>Prix (RON)</label><input id="cePrice" type="number" inputmode="decimal" value="'+priceOf(id)+'"></div>'
+    +'<div class="fld"><label>Rayon</label><input value="'+esc(sec?sec.section:'')+'" disabled></div>',
+     '<button class="mbtn danger" id="ceDel">Retirer</button><button class="mbtn primary" id="ceSave">Enregistrer</button>');
+  ge('ceSave').addEventListener('click',function(){
+    var nm=ge('ceName').value.trim(),q=ge('ceQty').value.trim(),p=Number(ge('cePrice').value);
+    closeModal();
+    mutate('/api/override-item',{id:id,name:nm,qty:q}).then(function(){if(!isNaN(p))mutate('/api/update-price',{id:id,price:p});});
+  });
+  ge('ceDel').addEventListener('click',function(){closeModal();if(confirm('Retirer cet article de la liste ?'))mutate('/api/delete-item',{id:id});});
 }
 // Optimistic toggle: flip locally for instant feedback, then POST + reconcile.
 function wToggle(id){var ck=WS.checked||{};if(ck[id])delete ck[id];else ck[id]={by:(WHO||'Web'),at:''};WS.checked=ck;renderShopping();apiPost('/api/toggle',{id:id,user:(WHO||'Web')}).then(function(){fetchState();}).catch(function(){fetchState();});}
@@ -2437,15 +2522,37 @@ function openPriceEdit(el){
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();inp.blur();}else if(e.key==='Escape'){done=true;renderShopping();}});
 }
+// Searchable catalogue picker (#1). Pick a catalogue item → pre-fill name/qty/rayon
+// (or restore it if it was hidden); "Ajouter manuellement" for off-catalogue items.
 function openAddItem(){
   openModal('Ajouter un article',
-     '<div class="fld"><label>Nom</label><input id="aiName" placeholder="Houmous"></div>'
+     '<div class="fld"><input id="aiSearch" placeholder="🔍 Rechercher dans le catalogue…" autocomplete="off"></div>'
+    +'<div id="aiResults" class="ai-results"></div>'
+    +'<div id="aiManual" style="display:none">'
+    +'<div class="fld"><label>Nom</label><input id="aiName"></div>'
     +'<div class="fld"><label>Quantité</label><input id="aiQty" placeholder="1 pot"></div>'
-    +'<div class="fld"><label>Rayon</label><select id="aiSec">'+sectionOptions('manual')+'</select></div>',
-     '<button class="mbtn" id="aiCancel">Annuler</button><button class="mbtn primary" id="aiSave">Ajouter</button>');
-  ge('aiName').focus();
-  ge('aiCancel').addEventListener('click',closeModal);
+    +'<div class="fld"><label>Rayon</label><select id="aiSec">'+sectionOptions('manual')+'</select></div></div>',
+     '<button class="mbtn" id="aiManualBtn">Ajouter manuellement</button><button class="mbtn primary" id="aiSave" style="display:none">Ajouter</button>');
+  function showForm(){ge('aiManual').style.display='block';ge('aiResults').style.display='none';ge('aiSearch').style.display='none';ge('aiSave').style.display='';ge('aiManualBtn').style.display='none';}
+  function renderResults(q){
+    q=(q||'').toLowerCase().trim();var out='';var n=0;
+    GROCERY.forEach(function(sec){sec.items.forEach(function(it){
+      if(n>=40)return;var name=ovName(it);
+      if(q&&name.toLowerCase().indexOf(q)<0)return;
+      out+='<div class="ai-item" data-pick="'+it.id+'">'+sec.icon+' <span class="ai-iname">'+esc(name)+'</span><span class="ai-iqty">'+esc(ovQty(it))+'</span>'+(isHidden(it.id)?'<span class="ai-hid">masqué</span>':'')+'</div>';n++;
+    });});
+    ge('aiResults').innerHTML=out||'<div class="ai-empty">Aucun résultat — « Ajouter manuellement ».</div>';
+    document.querySelectorAll('#aiResults [data-pick]').forEach(function(el){el.addEventListener('click',function(){pick(el.getAttribute('data-pick'));});});
+  }
+  function pick(id){
+    var it=gItem(id);if(!it)return;
+    if(isHidden(id)){closeModal();mutate('/api/add-item',{restore:id}).then(function(){webToast('Article restauré ✓');});return;}
+    showForm();ge('aiName').value=ovName(it);ge('aiQty').value=ovQty(it);ge('aiSec').value=(SECTION_OF[id]?SECTION_OF[id].id:'manual');
+  }
+  ge('aiSearch').addEventListener('input',function(){renderResults(ge('aiSearch').value);});
+  ge('aiManualBtn').addEventListener('click',function(){showForm();ge('aiName').focus();});
   ge('aiSave').addEventListener('click',function(){var n=ge('aiName').value.trim();if(!n){ge('aiName').focus();return;}mutate('/api/add-item',{name:n,qty:ge('aiQty').value.trim(),sectionId:ge('aiSec').value,user:(WHO||'Web')});closeModal();});
+  renderResults('');ge('aiSearch').focus();
 }
 function openEditItem(id){
   var m=(WS.manualItems||[]).filter(function(x){return x.id===id;})[0];if(!m)return;
@@ -2513,7 +2620,10 @@ function renderRecipes(){
   document.querySelectorAll('#viewRecipes [data-rdel]').forEach(function(el){el.addEventListener('click',function(){if(confirm('Supprimer cette recette ?'))mutate('/api/delete-recipe',{id:el.getAttribute('data-rdel')});});});
 }
 function recipeById(id){var l=(WS.recipes&&WS.recipes.length)?WS.recipes:RECIPES;return l.filter(function(r){return r.id===id;})[0];}
-function ingRowHtml(ing){ing=ing||{};return '<div class="rec-ing-row"><input class="ri-name" placeholder="Ingrédient" value="'+esc(ing.name||'')+'"><input class="ri-qty" placeholder="100g" value="'+esc(ing.qty||'')+'"><select class="ri-sec">'+sectionOptions(ing.sectionId||'manual')+'</select><button class="rec-ing-del" type="button" title="Retirer">&times;</button></div>';}
+// Catalogue lookup by display name → { id, sec } (for ingredient autocomplete).
+function catByName(nm){nm=(nm||'').trim().toLowerCase();var r=null;GROCERY.forEach(function(s){s.items.forEach(function(it){if(ovName(it).toLowerCase()===nm)r={id:it.id,sec:s.id};});});return r;}
+function catalogDatalist(){var o='';GROCERY.forEach(function(s){s.items.forEach(function(it){o+='<option value="'+esc(ovName(it))+'">';});});return '<datalist id="webCatDL">'+o+'</datalist>';}
+function ingRowHtml(ing){ing=ing||{};return '<div class="rec-ing-row"><input class="ri-name" list="webCatDL" placeholder="Ingrédient" value="'+esc(ing.name||'')+'" data-iid="'+esc(ing.itemId||'')+'"><input class="ri-qty" placeholder="100g" value="'+esc(ing.qty||'')+'"><select class="ri-sec">'+sectionOptions(ing.sectionId||'manual')+'</select><button class="rec-ing-del" type="button" title="Retirer">&times;</button><span class="ri-hint"></span></div>';}
 function openRecipeEdit(id){
   var r=id?recipeById(id):null;var isNew=!r;
   var ings=(r&&r.ingredients&&r.ingredients.length)?r.ingredients:[{}];
@@ -2521,17 +2631,23 @@ function openRecipeEdit(id){
      '<div class="fld"><label>Nom</label><input id="rcName" value="'+esc(r?r.name:'')+'"></div>'
     +'<div class="fld"><label>Emoji ou URL image</label><input id="rcImg" value="'+esc(r?(r.image||r.emoji||''):'')+'" placeholder="🍝 ou https://…"></div>'
     +'<div class="fld"><label>Portions</label><input id="rcServ" type="number" value="'+esc(r?(r.servings||2):2)+'"></div>'
-    +'<div class="fld"><label>Ingrédients</label><div id="rcIngs">'+ings.map(ingRowHtml).join('')+'</div><button class="rec-mini" id="rcAddIng" type="button" style="margin-top:8px;flex:none;padding:7px 12px">+ Ingrédient</button></div>',
+    +'<div class="fld"><label>Ingrédients <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">— tape pour chercher dans le catalogue</span></label><div id="rcIngs">'+ings.map(ingRowHtml).join('')+'</div>'+catalogDatalist()+'<button class="rec-mini" id="rcAddIng" type="button" style="margin-top:8px;flex:none;padding:7px 12px">+ Ingrédient</button></div>',
      (isNew?'<button class="mbtn" id="rcCancel">Annuler</button>':'<button class="mbtn danger" id="rcDel">Supprimer</button>')+'<button class="mbtn primary" id="rcSave">Enregistrer</button>');
-  // one delegated listener handles every ingredient row's delete button
+  // delete-row + catalog autocomplete (delegated, survives dynamically-added rows)
   ge('rcIngs').addEventListener('click',function(e){if(e.target&&e.target.classList.contains('rec-ing-del')){var rows=ge('rcIngs').querySelectorAll('.rec-ing-row');if(rows.length>1){var row=e.target.parentNode;row.parentNode.removeChild(row);}}});
+  ge('rcIngs').addEventListener('input',function(e){
+    if(!e.target||!e.target.classList.contains('ri-name'))return;
+    var row=e.target.closest('.rec-ing-row');var hit=catByName(e.target.value);var hint=row.querySelector('.ri-hint');
+    if(hit){e.target.setAttribute('data-iid',hit.id);row.querySelector('.ri-sec').value=hit.sec;var pr=(WS.prices&&WS.prices[hit.id]!==undefined)?WS.prices[hit.id]:defPrice(hit.id);hint.textContent=pr?('≈ '+pr+' RON'):'✓ catalogue';}
+    else{e.target.setAttribute('data-iid','');if(hint)hint.textContent='';}
+  });
   ge('rcAddIng').addEventListener('click',function(){var tmp=document.createElement('div');tmp.innerHTML=ingRowHtml({});ge('rcIngs').appendChild(tmp.firstChild);});
   if(ge('rcCancel'))ge('rcCancel').addEventListener('click',closeModal);
   if(ge('rcDel'))ge('rcDel').addEventListener('click',function(){mutate('/api/delete-recipe',{id:id});closeModal();});
   ge('rcSave').addEventListener('click',function(){
     var name=ge('rcName').value.trim();if(!name){ge('rcName').focus();return;}
     var ingredients=[];
-    document.querySelectorAll('#rcIngs .rec-ing-row').forEach(function(row){var nm=row.querySelector('.ri-name').value.trim();if(!nm)return;ingredients.push({name:nm,qty:row.querySelector('.ri-qty').value.trim(),sectionId:row.querySelector('.ri-sec').value});});
+    document.querySelectorAll('#rcIngs .rec-ing-row').forEach(function(row){var nm=row.querySelector('.ri-name').value.trim();if(!nm)return;var hit=catByName(nm)||(row.querySelector('.ri-name').getAttribute('data-iid')?{id:row.querySelector('.ri-name').getAttribute('data-iid'),sec:row.querySelector('.ri-sec').value}:null);ingredients.push({name:nm,qty:row.querySelector('.ri-qty').value.trim(),sectionId:hit?hit.sec:row.querySelector('.ri-sec').value,itemId:hit?hit.id:null});});
     // editing a saved recipe keeps its id; a brand-new one (or an example dr*) gets a fresh id
     var rid=(id&&String(id).indexOf('dr')!==0)?id:('r_'+Date.now());
     mutate('/api/save-recipe',{recipe:{id:rid,name:name,image:ge('rcImg').value.trim(),servings:Number(ge('rcServ').value)||2,ingredients:ingredients}});
@@ -3008,7 +3124,7 @@ async function mergedState(env, skey, hid, token) {
     const legacy = await env.KV.get('state');
     if (legacy) { await env.KV.put(skey, legacy); raw = legacy; }
   }
-  const s = raw ? JSON.parse(raw) : { checked: {}, manualItems: [], prices: {}, itemOverrides: {}, manualHistory: [], resetAt: null };
+  const s = raw ? JSON.parse(raw) : { checked: {}, manualItems: [], prices: {}, itemOverrides: {}, hiddenItems: [], manualHistory: [], resetAt: null };
   // one-time: lift legacy KV recipes + plan into Supabase before we overlay from it
   await migrateKvToSupabase(env, hid, token, s.recipes, s.plan);
   // recipes + plan come from Supabase, not KV
@@ -3387,6 +3503,14 @@ export default {
       const body = await request.json();
       const raw  = await env.KV.get(SKEY);
       const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
+      // Re-adding a hidden catalog item from the picker → just un-hide it (restore the
+      // original row), don't create a manual duplicate.
+      if (body.restore && (s.hiddenItems || []).indexOf(body.restore) >= 0) {
+        s.hiddenItems = s.hiddenItems.filter(x => x !== body.restore);
+        if (s.checked && s.checked[body.restore]) delete s.checked[body.restore];
+        await env.KV.put(SKEY, JSON.stringify(s));
+        return new Response(JSON.stringify(s), {headers: cors});
+      }
       const sectionId = body.sectionId || 'manual';
       s.manualItems = s.manualItems || [];
       s.manualItems.push({id:'m_'+Date.now(), name:body.name, qty:body.qty||'', sectionId});
@@ -3430,7 +3554,15 @@ export default {
       const body = await request.json();
       const raw  = await env.KV.get(SKEY);
       const s    = raw ? JSON.parse(raw) : {...DEFAULT_STATE};
-      s.manualItems = (s.manualItems || []).filter(m => m.id !== body.id);
+      // Catalog items (g*) can't be removed from the catalogue — hide them instead
+      // (non-destructive, reversible by re-adding). Manual items are removed outright.
+      const isCatalog = GROCERY_DATA.some(sec => sec.items.some(it => it.id === body.id));
+      if (isCatalog) {
+        s.hiddenItems = s.hiddenItems || [];
+        if (s.hiddenItems.indexOf(body.id) < 0) s.hiddenItems.push(body.id);
+      } else {
+        s.manualItems = (s.manualItems || []).filter(m => m.id !== body.id);
+      }
       if (s.checked && s.checked[body.id]) delete s.checked[body.id];
       await env.KV.put(SKEY, JSON.stringify(s));
       return new Response(JSON.stringify(s), {headers: cors});
