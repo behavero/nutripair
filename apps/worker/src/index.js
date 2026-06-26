@@ -3089,17 +3089,22 @@ export default {
       const u = await getUser(request, env);
       if (!u) return jsonRes({ error: 'unauthorized' }, 401);
       const hid = u.householdId;
+      // Remove FK references to this user's profile (invitations they created) so the
+      // auth-user delete can cascade the profile row cleanly.
+      await supabaseAdmin(env, 'invitations?created_by=eq.' + u.userId, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
       const del = await adminDeleteUser(env, u.userId);                                // cascades the profile
       if (!del.ok && del.status !== 404) return jsonRes({ error: 'delete_failed' }, 500);
       if (hid) { try {
-        const left = await supabaseAdmin(env, 'profiles?household_id=eq.' + hid + '&select=id', {});
-        const remaining = left.ok ? (await left.json()).length : 1;
-        if (remaining === 0) {                                                          // last member → wipe household data
+        const leftR = await supabaseAdmin(env, 'profiles?household_id=eq.' + hid + '&select=id,role&order=created_at', {});
+        const left = leftR.ok ? await leftR.json() : [];
+        if (left.length === 0) {                                                        // last member → wipe household data
           for (const t of ['meal_plans', 'recipes', 'shopping_history', 'invitations'])
             await supabaseAdmin(env, t + '?household_id=eq.' + hid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
           await supabaseAdmin(env, 'households?id=eq.' + hid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
           await env.KV.delete('h:' + hid + ':state');
           await env.KV.delete('h:' + hid + ':sbmigrated');
+        } else if (!left.some(m => m.role === 'admin')) {                               // deleted the admin → promote earliest remaining member
+          await supabaseAdmin(env, 'profiles?id=eq.' + left[0].id, { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ role: 'admin' }) });
         }
       } catch (e) {} }
       clearProfileCache(u.userId);
