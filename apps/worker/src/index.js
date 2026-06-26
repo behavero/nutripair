@@ -2415,12 +2415,21 @@ function openMealEdit(day,slot){
   var plan=planForWeek(currentWeek);var m=(plan[day]&&plan[day][slot])||{name:'',detail:'',time:'',type:'free'};
   var types=[['prep','Préparation'],['cook','Cuisson'],['batch','Batch'],['free','Libre']];
   var topts=types.map(function(t){return '<option value="'+t[0]+'"'+(m.type===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('');
+  // Recipe picker: same idea as mobile — selecting a recipe auto-fills Plat + Détail.
+  var rlist=(WS.recipes&&WS.recipes.length)?WS.recipes:RECIPES;
+  var ropts='<option value="">📖 Choisir une recette…</option>'+rlist.map(function(r){return '<option value="'+esc(r.id)+'">'+esc(r.name||'')+'</option>';}).join('');
   openModal((DAY_FR[day]||day)+' · '+(SLOT_FR[slot]||slot),
-     '<div class="fld"><label>Plat</label><input id="meName" value="'+esc(m.name||'')+'"></div>'
+     '<div class="fld"><label>Depuis une recette</label><select id="meRecipe">'+ropts+'</select></div>'
+    +'<div class="fld"><label>Plat</label><input id="meName" value="'+esc(m.name||'')+'"></div>'
     +'<div class="fld"><label>Détail</label><textarea id="meDetail">'+esc(m.detail||'')+'</textarea></div>'
     +'<div class="fld"><label>Durée</label><input id="meTime" value="'+esc(m.time||'')+'" placeholder="15 min"></div>'
     +'<div class="fld"><label>Type</label><select id="meType">'+topts+'</select></div>',
      '<button class="mbtn" id="meCancel">Annuler</button><button class="mbtn primary" id="meSave">Enregistrer</button>');
+  ge('meRecipe').addEventListener('change',function(){
+    var r=rlist.filter(function(x){return x.id===ge('meRecipe').value;})[0];if(!r)return;
+    ge('meName').value=r.name||'';
+    ge('meDetail').value=(r.ingredients||[]).map(function(i){return (i.qty?i.qty+' ':'')+(i.name||'');}).join(' + ');
+  });
   ge('meCancel').addEventListener('click',closeModal);
   ge('meSave').addEventListener('click',function(){mutate('/api/update-meal',{week:currentWeek,day:day,slot:slot,meal:{name:ge('meName').value.trim(),detail:ge('meDetail').value.trim(),time:ge('meTime').value.trim(),type:ge('meType').value}});closeModal();});
 }
