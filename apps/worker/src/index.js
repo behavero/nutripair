@@ -845,6 +845,7 @@ function setLang(l) {
   lang = l;
   T    = I18N[l];
   try { localStorage.setItem('np_lang', l); } catch(e) {}
+  apiPost('/api/user/prefs', {lang:l}).catch(function(){});   // sync to profile so web + mobile agree
   updateLangUI();
 }
 
@@ -873,6 +874,10 @@ function updateLangUI() {
   try { var sw = localStorage.getItem('np_week'); if (sw) currentWeek = sw; } catch(e) {}
   if (!currentWeek) currentWeek = currentISOWeek();
   updateLangUI();
+  // language follows the profile pref (so switching on web reflects on mobile and vice-versa)
+  fetch('/auth/me').then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+    if (d && d.lang && I18N[d.lang] && d.lang !== lang) { lang = d.lang; T = I18N[lang]; try { localStorage.setItem('np_lang', lang); } catch(e) {} updateLangUI(); if (typeof renderAll === 'function') renderAll(true); }
+  }).catch(function(){});
 
   // overlay lang buttons
   document.querySelectorAll('[data-lang]').forEach(function(btn) {
@@ -2199,7 +2204,95 @@ const MACROS = {
  * POST to the same /api/* routes the mobile app uses.
  * @returns {string} the full desktop HTML document.
  */
+// Full UI translation table (FR/EN/RO). Used by the web dashboard via tr(); the
+// mobile keeps its own I18N for legacy strings and pulls from here for newer surfaces.
+const TRANSLATIONS = {
+  fr: {
+    nav_shopping:'Courses', nav_planning:'Planning', nav_recipes:'Recettes', nav_nutrition:'Nutrition',
+    nav_budget:'Budget', nav_history:'Historique', nav_profile:'Profil', nav_overview:"Vue d'ensemble",
+    shopping_add:'+ Ajouter un article', shopping_uncheck_all:'Tout décocher',
+    shopping_show_checked:'Afficher les cochés', shopping_hide_checked:'Masquer les cochés',
+    shopping_col_article:'Article', shopping_col_qty:'Quantité', shopping_col_price:'Prix',
+    shopping_col_checked_by:'Coché par', shopping_done:'Terminé', shopping_manual:'Ajoutés manuellement',
+    shopping_search:'Rechercher dans le catalogue…', shopping_add_manual:'Ajouter manuellement', shopping_no_results:'Aucun résultat',
+    planning_title:'Planning', planning_week:'Sem.', slot_breakfast:'Petit-déj', slot_lunch:'Déjeuner',
+    slot_snack:'Collation', slot_dinner:'Dîner', planning_save:'Enregistrer', planning_cancel:'Annuler',
+    planning_dish:'Plat', planning_detail:'Détail', planning_duration:'Durée', planning_type:'Type', planning_from_recipe:'Depuis une recette', planning_nothing:'Rien de planifié',
+    recipes_new:'Nouvelle recette', recipes_add_to_cart:'+ Ajouter au panier', recipes_edit:'Modifier',
+    recipes_delete:'Supprimer', recipes_name:'Nom', recipes_emoji:'Emoji ou URL image', recipes_servings:'Portions',
+    recipes_ingredients:'Ingrédients', recipes_add_ingredient:'+ Ingrédient', recipes_save:'Enregistrer',
+    recipes_ingredient:'Ingrédient', recipes_servings_n:'portions', recipes_examples:'Recettes d’exemple — modifie-les ou crée la tienne.',
+    profile_account:'Mon compte', profile_household:'Foyer', profile_invite:'+ Inviter un partenaire',
+    profile_prefs:'Préférences', profile_language:'Langue', profile_currency:'Devise', profile_security:'Sécurité',
+    profile_change_pwd:'Changer le mot de passe', profile_danger:'Zone danger', profile_delete:'Supprimer mon compte',
+    profile_logout:'Se déconnecter', profile_admin:'Admin', profile_member:'Membre', profile_remove:'Retirer',
+    profile_leave:'Quitter le foyer', profile_members:'membre(s)', profile_cur_pwd:'Mot de passe actuel', profile_new_pwd:'Nouveau (min. 8)', profile_confirm_pwd:'Confirmer', profile_edit:'Modifier',
+    overview_week:'Cette semaine', overview_remaining:'articles restants', overview_checked:'cochés',
+    overview_spent:'dépensés', overview_today:"Aujourd'hui", overview_nothing:'Rien de planifié',
+    overview_budget:'Budget', overview_set_budget:'+ Définir un budget', overview_nutrition:'Nutrition',
+    overview_nutrition_sub:'Estimé sur les articles cochés cette semaine', overview_no_data:'Pas encore de données nutritionnelles',
+    overview_see_list:'Voir la liste →', overview_edit_plan:'Modifier →', overview_of_budget:'de budget',
+    macro_protein:'Protéines', macro_carbs:'Glucides', macro_fats:'Lipides', macro_calories:'Calories',
+    btn_save:'Enregistrer', btn_cancel:'Annuler', btn_confirm:'Confirmer', btn_close:'Fermer', btn_edit:'Modifier', btn_delete:'Supprimer',
+    synced:'Synchronisé', offline:'Hors ligne', loading:'Chargement...', error_generic:'Une erreur est survenue', min:'min',
+  },
+  en: {
+    nav_shopping:'Shopping', nav_planning:'Planning', nav_recipes:'Recipes', nav_nutrition:'Nutrition',
+    nav_budget:'Budget', nav_history:'History', nav_profile:'Profile', nav_overview:'Overview',
+    shopping_add:'+ Add item', shopping_uncheck_all:'Uncheck all', shopping_show_checked:'Show checked',
+    shopping_hide_checked:'Hide checked', shopping_col_article:'Item', shopping_col_qty:'Quantity',
+    shopping_col_price:'Price', shopping_col_checked_by:'Checked by', shopping_done:'Done', shopping_manual:'Added manually',
+    shopping_search:'Search the catalogue…', shopping_add_manual:'Add manually', shopping_no_results:'No results',
+    planning_title:'Planning', planning_week:'Week', slot_breakfast:'Breakfast', slot_lunch:'Lunch',
+    slot_snack:'Snack', slot_dinner:'Dinner', planning_save:'Save', planning_cancel:'Cancel',
+    planning_dish:'Dish', planning_detail:'Detail', planning_duration:'Duration', planning_type:'Type', planning_from_recipe:'From a recipe', planning_nothing:'Nothing planned',
+    recipes_new:'New recipe', recipes_add_to_cart:'+ Add to cart', recipes_edit:'Edit', recipes_delete:'Delete',
+    recipes_name:'Name', recipes_emoji:'Emoji or image URL', recipes_servings:'Servings', recipes_ingredients:'Ingredients',
+    recipes_add_ingredient:'+ Ingredient', recipes_save:'Save', recipes_ingredient:'Ingredient', recipes_servings_n:'servings', recipes_examples:'Example recipes — edit them or create your own.',
+    profile_account:'My account', profile_household:'Household', profile_invite:'+ Invite a partner',
+    profile_prefs:'Preferences', profile_language:'Language', profile_currency:'Currency', profile_security:'Security',
+    profile_change_pwd:'Change password', profile_danger:'Danger zone', profile_delete:'Delete my account',
+    profile_logout:'Sign out', profile_admin:'Admin', profile_member:'Member', profile_remove:'Remove',
+    profile_leave:'Leave household', profile_members:'member(s)', profile_cur_pwd:'Current password', profile_new_pwd:'New (min. 8)', profile_confirm_pwd:'Confirm', profile_edit:'Edit',
+    overview_week:'This week', overview_remaining:'remaining', overview_checked:'checked', overview_spent:'spent',
+    overview_today:'Today', overview_nothing:'Nothing planned', overview_budget:'Budget', overview_set_budget:'+ Set a budget',
+    overview_nutrition:'Nutrition', overview_nutrition_sub:'Estimated from items checked this week', overview_no_data:'No nutrition data yet',
+    overview_see_list:'View list →', overview_edit_plan:'Edit →', overview_of_budget:'budget',
+    macro_protein:'Protein', macro_carbs:'Carbs', macro_fats:'Fats', macro_calories:'Calories',
+    btn_save:'Save', btn_cancel:'Cancel', btn_confirm:'Confirm', btn_close:'Close', btn_edit:'Edit', btn_delete:'Delete',
+    synced:'Synced', offline:'Offline', loading:'Loading...', error_generic:'Something went wrong', min:'min',
+  },
+  ro: {
+    nav_shopping:'Cumpărături', nav_planning:'Planificare', nav_recipes:'Rețete', nav_nutrition:'Nutriție',
+    nav_budget:'Buget', nav_history:'Istoric', nav_profile:'Profil', nav_overview:'Prezentare',
+    shopping_add:'+ Adaugă articol', shopping_uncheck_all:'Debifează tot', shopping_show_checked:'Arată bifatele',
+    shopping_hide_checked:'Ascunde bifatele', shopping_col_article:'Articol', shopping_col_qty:'Cantitate',
+    shopping_col_price:'Preț', shopping_col_checked_by:'Bifat de', shopping_done:'Gata', shopping_manual:'Adăugate manual',
+    shopping_search:'Caută în catalog…', shopping_add_manual:'Adaugă manual', shopping_no_results:'Niciun rezultat',
+    planning_title:'Planificare', planning_week:'Săpt.', slot_breakfast:'Mic dejun', slot_lunch:'Prânz',
+    slot_snack:'Gustare', slot_dinner:'Cină', planning_save:'Salvează', planning_cancel:'Anulează',
+    planning_dish:'Preparat', planning_detail:'Detalii', planning_duration:'Durată', planning_type:'Tip', planning_from_recipe:'Dintr-o rețetă', planning_nothing:'Nimic planificat',
+    recipes_new:'Rețetă nouă', recipes_add_to_cart:'+ Adaugă în coș', recipes_edit:'Modifică', recipes_delete:'Șterge',
+    recipes_name:'Nume', recipes_emoji:'Emoji sau URL imagine', recipes_servings:'Porții', recipes_ingredients:'Ingrediente',
+    recipes_add_ingredient:'+ Ingredient', recipes_save:'Salvează', recipes_ingredient:'Ingredient', recipes_servings_n:'porții', recipes_examples:'Rețete exemplu — modifică-le sau creează a ta.',
+    profile_account:'Contul meu', profile_household:'Gospodărie', profile_invite:'+ Invită un partener',
+    profile_prefs:'Preferințe', profile_language:'Limbă', profile_currency:'Monedă', profile_security:'Securitate',
+    profile_change_pwd:'Schimbă parola', profile_danger:'Zonă periculoasă', profile_delete:'Șterge contul',
+    profile_logout:'Deconectare', profile_admin:'Admin', profile_member:'Membru', profile_remove:'Elimină',
+    profile_leave:'Părăsește gospodăria', profile_members:'membru(i)', profile_cur_pwd:'Parola actuală', profile_new_pwd:'Nouă (min. 8)', profile_confirm_pwd:'Confirmă', profile_edit:'Modifică',
+    overview_week:'Săptămâna aceasta', overview_remaining:'rămase', overview_checked:'bifate', overview_spent:'cheltuiți',
+    overview_today:'Azi', overview_nothing:'Nimic planificat', overview_budget:'Buget', overview_set_budget:'+ Setează buget',
+    overview_nutrition:'Nutriție', overview_nutrition_sub:'Estimat din articolele bifate', overview_no_data:'Nu există date nutriționale',
+    overview_see_list:'Vezi lista →', overview_edit_plan:'Modifică →', overview_of_budget:'buget',
+    macro_protein:'Proteine', macro_carbs:'Glucide', macro_fats:'Lipide', macro_calories:'Calorii',
+    btn_save:'Salvează', btn_cancel:'Anulează', btn_confirm:'Confirmă', btn_close:'Închide', btn_edit:'Modifică', btn_delete:'Șterge',
+    synced:'Sincronizat', offline:'Offline', loading:'Se încarcă...', error_generic:'A apărut o eroare', min:'min',
+  }
+};
+function t(key, lang) { return (TRANSLATIONS[lang] || TRANSLATIONS.fr)[key] || key; }
+
 function buildWebHTML() {
+  const translationsJSON = JSON.stringify(TRANSLATIONS);
   const groceryJSON = JSON.stringify(GROCERY_DATA);
   const recipesJSON = JSON.stringify(DEFAULT_RECIPES);
   const planJSON    = JSON.stringify(DEFAULT_PLAN);
@@ -2251,6 +2344,19 @@ body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-t
 .kpi-val .u{font-size:13px;color:var(--color-on-dark-muted)}
 .kpi.dark{background:var(--color-dark)}.kpi.dark .kpi-lbl{color:var(--color-on-dark-muted)}.kpi.dark .kpi-val{color:var(--color-on-dark)}
 .ov-row2{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;align-items:start}
+.ov-h{font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--color-primary);margin:0 0 12px}
+.ov-sec{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--color-text-muted);margin:22px 0 10px}
+.ov-card{max-width:680px}
+.ov-prog-nums{font-size:15px;color:var(--color-text);margin-bottom:12px}.ov-prog-nums b{font-family:var(--font-display);font-size:22px;color:var(--color-primary)}
+.ov-bar{height:10px;border-radius:9999px;background:var(--color-surface-sunken);overflow:hidden;margin-bottom:12px}
+.ov-bar-fill{height:100%;border-radius:9999px;background:var(--color-primary);transition:width .3s var(--ease-standard)}
+.ov-link{background:none;border:none;color:var(--color-primary);font-size:13px;font-weight:700;cursor:pointer;padding:0}
+.ov-meals{display:flex;flex-direction:column;gap:0}
+.ov-meal{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--color-surface-sunken)}
+.ov-meal-slot{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted);width:88px;flex-shrink:0}
+.ov-meal-name{font-size:14px;color:var(--color-text)}
+.ov-budget-line{font-size:13px;font-weight:600;color:var(--color-text);margin-top:10px}
+.ov-empty{color:var(--color-text-muted);font-size:14px;text-align:center;padding:24px}
 .card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:14px;padding:18px}
 .budget-card{display:flex;align-items:center;gap:20px}
 .donut-wrap{width:150px;height:150px;flex-shrink:0;position:relative}
@@ -2370,12 +2476,15 @@ var GROCERY = ${groceryJSON};
 var RECIPES = ${recipesJSON};
 var DEFAULT_PLAN = ${planJSON};
 var MACROS = ${macrosJSON};
+var TR = ${translationsJSON};
+var LANG = 'fr';                       // UI language (from /auth/me profile pref)
+function tr(k){return (TR[LANG]||TR.fr)[k]||k;}
+function slotLabel(s){return tr('slot_'+s);}
 var DAYS=['lun','mar','mer','jeu','ven','sam','dim'];
 var SLOTS=['breakfast','lunch','snack','dinner'];
 var SLOT_FR={breakfast:'Petit-déj',lunch:'Déjeuner',snack:'Collation',dinner:'Dîner'};
 var DAY_FR={lun:'Lun',mar:'Mar',mer:'Mer',jeu:'Jeu',ven:'Ven',sam:'Sam',dim:'Dim'};
 var SLOT_CLASS={breakfast:'bf',lunch:'lu',snack:'sn',dinner:'di'};
-var TITLES={overview:'Overview',shopping:'Courses',planning:'Planning',recipes:'Recettes',nutrition:'Nutrition',budget:'Budget',history:'Historique',profile:'Profil'};
 var VIEWS=['overview','shopping','planning','recipes','nutrition','budget','history','profile'];
 var DONUT_COLORS=['#C85A2A','#3D6B35','#E0A52E','#2F7E7A','#8b5cf6','#C0392B'];
 var WS={checked:{},manualItems:[],plan:{},prices:{},recipes:[]};
@@ -2386,6 +2495,7 @@ var donutChart=null;
 var pollTimer=null;
 var WHO='';            // current user name (for /api/toggle attribution)
 var CURRENCY='RON';    // current user currency pref (from /auth/me)
+var BUDGET_CEILING=null; // optional budget ceiling (user pref)
 var CUR_SYM={RON:'RON',EUR:'€',USD:'$'};
 
 function ge(id){return document.getElementById(id);}
@@ -2428,17 +2538,44 @@ function kpiCard(lbl,val,unit,dark){return '<div class="kpi'+(dark?' dark':'')+'
 function budgetData(){var bySec={};var spent=0;var prices=WS.prices||{};Object.keys(prices).forEach(function(id){var v=prices[id];if(typeof v!=='number')return;spent+=v;var s=SECTION_OF[id];var key=s?s.section:'Autre';bySec[key]=(bySec[key]||0)+v;});var segs=Object.keys(bySec).map(function(k){return {name:k,val:bySec[k]};});return {segs:segs,spent:spent};}
 function recentPrices(){var prices=WS.prices||{};var ids=Object.keys(prices).slice(-10).reverse();return ids.map(function(id){return {name:nameOf(id),section:sectionName(id),price:prices[id]};});}
 
+// Shopping totals over the visible (non-hidden) catalogue + manual items.
+function shoppingStats(){
+  var ck=WS.checked||{};var total=0,checked=0,spent=0;
+  GROCERY.forEach(function(sec){sec.items.forEach(function(it){if(isHidden(it.id))return;total++;if(ck[it.id]){checked++;spent+=priceOf(it.id);}});});
+  (WS.manualItems||[]).forEach(function(m){total++;if(ck[m.id]){checked++;}});
+  return {total:total,checked:checked,remaining:total-checked,spent:spent};
+}
+function setBudgetCeiling(){var v=prompt(tr('overview_set_budget'),BUDGET_CEILING||'100');if(v===null)return;var n=Number(v);if(isNaN(n)||n<=0)return;BUDGET_CEILING=n;wpost('/api/user/prefs',{budgetCeiling:n}).then(function(){renderOverview();}).catch(function(){});}
 function renderOverview(){
-  var t=macroTotals();var b=budgetData();
-  var rows=recentPrices().map(function(r){return '<div class="prow"><span class="pn">'+esc(r.name)+'</span><span class="ps">'+esc(r.section)+'</span><span class="pp">'+fmtPrice(r.price)+'</span></div>';}).join('');
-  if(!rows)rows='<div class="muted" style="padding:14px 0">Aucun prix enregistré pour l\\'instant.</div>';
-  var legend=b.segs.map(function(s,i){return '<span class="lg"><span class="sw" style="background:'+DONUT_COLORS[i%DONUT_COLORS.length]+'"></span>'+s.name+' '+Math.round(s.val)+'</span>';}).join('');
-  if(!legend)legend='<span class="muted">Aucune dépense</span>';
-  ge('viewOverview').innerHTML=
-    '<div class="kpi-row">'+kpiCard('Protein',Math.round(t.p),'g',false)+kpiCard('Carbs',Math.round(t.c),'g',false)+kpiCard('Fats',Math.round(t.f),'g',false)+kpiCard('Calories',Math.round(t.k).toLocaleString('fr-FR'),'',true)+'</div>'
-   +'<div class="ov-row2"><div class="card budget-card"><div class="donut-wrap"><canvas id="budgetDonut"></canvas><div class="donut-center" id="donutCenter"></div></div><div class="budget-legend">'+legend+'</div></div>'
-   +'<div class="card prices-table">'+rows+'</div></div>';
-  renderDonut(b.segs,b.spent,100);
+  var st=shoppingStats();var pct=st.total>0?Math.round(st.checked/st.total*100):0;
+  var plan=planForWeek(currentWeek);var tk=todayKey();var todayPlan=plan[tk]||{};
+  var meals=SLOTS.map(function(s){var m=todayPlan[s]||{};return '<div class="ov-meal"><span class="ov-meal-slot">'+slotLabel(s)+'</span><span class="ov-meal-name">'+(m.name?esc(m.name):'<span class="muted">'+tr('overview_nothing')+'</span>')+'</span></div>';}).join('');
+  var html='<div class="ov-h">'+tr('overview_week')+' · '+weekLabel(currentWeek)+'</div>';
+  // shopping progress
+  html+='<div class="card ov-card"><div class="ov-prog-nums"><b>'+st.remaining+'</b> '+tr('overview_remaining')+' · '+st.checked+' '+tr('overview_checked')+' · '+fmtPrice(st.spent)+' '+tr('overview_spent')+'</div>'
+    +'<div class="ov-bar"><div class="ov-bar-fill" style="width:'+pct+'%"></div></div>'
+    +'<button class="ov-link" data-go="shopping">'+tr('overview_see_list')+'</button></div>';
+  // today's meals
+  html+='<div class="ov-sec">'+tr('overview_today')+'</div><div class="card ov-card ov-meals">'+meals+'<button class="ov-link" data-go="planning">'+tr('overview_edit_plan')+'</button></div>';
+  // budget (only if any spending)
+  var b=budgetData();
+  if(b.spent>0){
+    var legend=b.segs.map(function(s,i){return '<span class="lg"><span class="sw" style="background:'+DONUT_COLORS[i%DONUT_COLORS.length]+'"></span>'+esc(s.name)+' '+fmtPrice(Math.round(s.val))+'</span>';}).join('');
+    html+='<div class="ov-sec">'+tr('overview_budget')+'</div><div class="card budget-card"><div class="donut-wrap"><canvas id="budgetDonut"></canvas><div class="donut-center" id="donutCenter"></div></div><div class="budget-legend">'+legend
+      +(BUDGET_CEILING?'<div class="ov-budget-line">'+fmtPrice(Math.round(b.spent))+' / '+fmtPrice(BUDGET_CEILING)+' '+tr('overview_of_budget')+'</div>':'<button class="ov-link" id="ovSetBudget">'+tr('overview_set_budget')+'</button>')
+      +'</div></div>';
+  }
+  // nutrition (only if any macros)
+  var m=macroTotals();
+  html+='<div class="ov-sec">'+tr('overview_nutrition')+'</div>';
+  if(m.p||m.c||m.f||m.k){
+    html+='<div class="kpi-row">'+kpiCard(tr('macro_protein'),Math.round(m.p),'g',false)+kpiCard(tr('macro_carbs'),Math.round(m.c),'g',false)+kpiCard(tr('macro_fats'),Math.round(m.f),'g',false)+kpiCard(tr('macro_calories'),Math.round(m.k),'',true)+'</div>'
+      +'<div class="muted" style="margin-top:8px">'+tr('overview_nutrition_sub')+'</div>';
+  } else { html+='<div class="card ov-empty">'+tr('overview_no_data')+'</div>'; }
+  ge('viewOverview').innerHTML=html;
+  document.querySelectorAll('#viewOverview [data-go]').forEach(function(el){el.addEventListener('click',function(){location.hash=el.getAttribute('data-go');});});
+  if(b.spent>0)renderDonut(b.segs,b.spent,BUDGET_CEILING||Math.max(100,Math.ceil(b.spent)));
+  if(ge('ovSetBudget'))ge('ovSetBudget').addEventListener('click',setBudgetCeiling);
 }
 function renderDonut(segs,spent,ceiling){
   var ctx=ge('budgetDonut');if(!ctx||typeof Chart==='undefined')return;
@@ -2457,9 +2594,9 @@ function renderShopping(){
   var checkedCount=0;
   GROCERY.forEach(function(sec){sec.items.forEach(function(it){if(!isHidden(it.id)&&ck[it.id])checkedCount++;});});
   (WS.manualItems||[]).forEach(function(m){if(ck[m.id])checkedCount++;});
-  var html='<div class="shop-bar"><button class="shop-add" id="shopAdd">+ Ajouter un article</button>'
-    +(checkedCount>0?'<button class="shop-toggle" id="shopToggle">'+(showChecked?'Masquer':'Afficher')+' les articles cochés ('+checkedCount+')</button>':'')+'</div>';
-  html+='<div class="gtable"><div class="gt-head"><div></div><div>Article</div><div>Quantité</div><div>Prix</div><div></div></div>';
+  var html='<div class="shop-bar"><button class="shop-add" id="shopAdd">'+tr('shopping_add')+'</button>'
+    +(checkedCount>0?'<button class="shop-toggle" id="shopToggle">'+(showChecked?tr('shopping_hide_checked'):tr('shopping_show_checked'))+' ('+checkedCount+')</button>':'')+'</div>';
+  html+='<div class="gtable"><div class="gt-head"><div></div><div>'+tr('shopping_col_article')+'</div><div>'+tr('shopping_col_qty')+'</div><div>'+tr('shopping_col_price')+'</div><div></div></div>';
   GROCERY.forEach(function(sec){
     var rows='';
     sec.items.forEach(function(it){
@@ -2476,7 +2613,7 @@ function renderShopping(){
     if(rows)html+='<div class="gt-sec">'+sec.icon+' '+esc(sec.section)+'</div>'+rows;   // section header only when it has visible rows
   });
   var mans=(WS.manualItems||[]).filter(function(m){return showChecked||!ck[m.id];});
-  if(mans.length){html+='<div class="gt-sec">&#9998; Ajoutés manuellement</div>';
+  if(mans.length){html+='<div class="gt-sec">&#9998; '+tr('shopping_manual')+'</div>';
     mans.forEach(function(m){var c=ck[m.id];
       html+='<div class="gt-row'+(c?' done':'')+'">'
         +'<div><span class="gt-check'+(c?' on':'')+'" data-tg="'+m.id+'">'+(c?'&#10003;':'')+'</span></div>'
@@ -2526,13 +2663,13 @@ function openPriceEdit(el){
 // (or restore it if it was hidden); "Ajouter manuellement" for off-catalogue items.
 function openAddItem(){
   openModal('Ajouter un article',
-     '<div class="fld"><input id="aiSearch" placeholder="🔍 Rechercher dans le catalogue…" autocomplete="off"></div>'
+     '<div class="fld"><input id="aiSearch" placeholder="🔍 '+tr('shopping_search')+'" autocomplete="off"></div>'
     +'<div id="aiResults" class="ai-results"></div>'
     +'<div id="aiManual" style="display:none">'
     +'<div class="fld"><label>Nom</label><input id="aiName"></div>'
     +'<div class="fld"><label>Quantité</label><input id="aiQty" placeholder="1 pot"></div>'
     +'<div class="fld"><label>Rayon</label><select id="aiSec">'+sectionOptions('manual')+'</select></div></div>',
-     '<button class="mbtn" id="aiManualBtn">Ajouter manuellement</button><button class="mbtn primary" id="aiSave" style="display:none">Ajouter</button>');
+     '<button class="mbtn" id="aiManualBtn">'+tr('shopping_add_manual')+'</button><button class="mbtn primary" id="aiSave" style="display:none">'+tr('btn_save')+'</button>');
   function showForm(){ge('aiManual').style.display='block';ge('aiResults').style.display='none';ge('aiSearch').style.display='none';ge('aiSave').style.display='';ge('aiManualBtn').style.display='none';}
   function renderResults(q){
     q=(q||'').toLowerCase().trim();var out='';var n=0;
@@ -2570,7 +2707,7 @@ function renderPlanning(){
   var html='<div class="cal-wrap"><div class="cal"><div></div>';
   DAYS.forEach(function(d){var isT=(wk===realWk&&d===tk);html+='<div class="cal-day'+(isT?' today':'')+'">'+DAY_FR[d]+'<br><span>'+dates[d].getUTCDate()+'</span></div>';});
   SLOTS.forEach(function(slot){
-    html+='<div class="cal-slot">'+SLOT_FR[slot]+'</div>';
+    html+='<div class="cal-slot">'+slotLabel(slot)+'</div>';
     DAYS.forEach(function(d){var m=plan[d][slot];html+='<div class="cal-cell '+(SLOT_CLASS[slot]||'')+'" data-day="'+d+'" data-slot="'+slot+'" title="Modifier">'+esc(m.name||'')+'</div>';});
   });
   html+='</div></div>';
@@ -2584,13 +2721,13 @@ function openMealEdit(day,slot){
   // Recipe picker: same idea as mobile — selecting a recipe auto-fills Plat + Détail.
   var rlist=(WS.recipes&&WS.recipes.length)?WS.recipes:RECIPES;
   var ropts='<option value="">📖 Choisir une recette…</option>'+rlist.map(function(r){return '<option value="'+esc(r.id)+'">'+esc(r.name||'')+'</option>';}).join('');
-  openModal((DAY_FR[day]||day)+' · '+(SLOT_FR[slot]||slot),
-     '<div class="fld"><label>Depuis une recette</label><select id="meRecipe">'+ropts+'</select></div>'
-    +'<div class="fld"><label>Plat</label><input id="meName" value="'+esc(m.name||'')+'"></div>'
-    +'<div class="fld"><label>Détail</label><textarea id="meDetail">'+esc(m.detail||'')+'</textarea></div>'
-    +'<div class="fld"><label>Durée</label><input id="meTime" value="'+esc(m.time||'')+'" placeholder="15 min"></div>'
-    +'<div class="fld"><label>Type</label><select id="meType">'+topts+'</select></div>',
-     '<button class="mbtn" id="meCancel">Annuler</button><button class="mbtn primary" id="meSave">Enregistrer</button>');
+  openModal((DAY_FR[day]||day)+' · '+(slotLabel(slot)||slot),
+     '<div class="fld"><label>'+tr('planning_from_recipe')+'</label><select id="meRecipe">'+ropts+'</select></div>'
+    +'<div class="fld"><label>'+tr('planning_dish')+'</label><input id="meName" value="'+esc(m.name||'')+'"></div>'
+    +'<div class="fld"><label>'+tr('planning_detail')+'</label><textarea id="meDetail">'+esc(m.detail||'')+'</textarea></div>'
+    +'<div class="fld"><label>'+tr('planning_duration')+'</label><input id="meTime" value="'+esc(m.time||'')+'" placeholder="15 '+tr('min')+'"></div>'
+    +'<div class="fld"><label>'+tr('planning_type')+'</label><select id="meType">'+topts+'</select></div>',
+     '<button class="mbtn" id="meCancel">'+tr('btn_cancel')+'</button><button class="mbtn primary" id="meSave">'+tr('btn_save')+'</button>');
   ge('meRecipe').addEventListener('change',function(){
     var r=rlist.filter(function(x){return x.id===ge('meRecipe').value;})[0];if(!r)return;
     ge('meName').value=r.name||'';
@@ -2603,12 +2740,12 @@ function openMealEdit(day,slot){
 function renderRecipes(){
   var usingDefaults=!(WS.recipes&&WS.recipes.length);
   var list=usingDefaults?RECIPES:WS.recipes;
-  var html='<div class="rec-bar"><button class="shop-add" id="recNew">+ Nouvelle recette</button></div><div class="rec-grid">';
+  var html='<div class="rec-bar"><button class="shop-add" id="recNew">'+tr('recipes_new')+'</button></div><div class="rec-grid">';
   list.forEach(function(r){
     var img=r.image||r.emoji||'';var thumb=(String(img).indexOf('http')===0)?'<div class="rec-thumb" style="padding:0"><img src="'+esc(img)+'" style="width:100%;height:96px;object-fit:cover"></div>':'<div class="rec-thumb">'+(img||'🍽️')+'</div>';
-    html+='<div class="rec-card">'+thumb+'<div class="rec-body"><div class="rec-name">'+esc(r.name||'')+'</div><div class="rec-meta">'+((r.ingredients||[]).length)+' ingrédients · '+(r.servings||2)+' portions</div>'
-      +'<button class="rec-btn" data-cart="'+esc(r.id)+'">+ Ajouter au panier</button>'
-      +'<div class="rec-actions"><button class="rec-mini" data-redit="'+esc(r.id)+'">Modifier</button><button class="rec-mini" data-rdel="'+esc(r.id)+'">Supprimer</button></div>'
+    html+='<div class="rec-card">'+thumb+'<div class="rec-body"><div class="rec-name">'+esc(r.name||'')+'</div><div class="rec-meta">'+((r.ingredients||[]).length)+' '+tr('recipes_ingredients').toLowerCase()+' · '+(r.servings||2)+' '+tr('recipes_servings_n')+'</div>'
+      +'<button class="rec-btn" data-cart="'+esc(r.id)+'">'+tr('recipes_add_to_cart')+'</button>'
+      +'<div class="rec-actions"><button class="rec-mini" data-redit="'+esc(r.id)+'">'+tr('recipes_edit')+'</button><button class="rec-mini" data-rdel="'+esc(r.id)+'">'+tr('recipes_delete')+'</button></div>'
       +'</div></div>';
   });
   html+='</div>';
@@ -2667,19 +2804,19 @@ function renderProfileWeb(){
   fetch('/auth/me').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){
     var isAdmin=d.role==='admin';
     var members=(d.members||[]).map(function(m){
-      var badge='<span class="wpf-role'+(m.role==='admin'?' admin':'')+'">'+(m.role==='admin'?'Admin':'Membre')+'</span>';
-      var act=(isAdmin&&m.userId!==d.userId)?'<button class="wpf-mini danger" data-remove="'+m.userId+'" data-rmname="'+esc(m.name)+'">Retirer</button>':'';
+      var badge='<span class="wpf-role'+(m.role==='admin'?' admin':'')+'">'+(m.role==='admin'?tr('profile_admin'):tr('profile_member'))+'</span>';
+      var act=(isAdmin&&m.userId!==d.userId)?'<button class="wpf-mini danger" data-remove="'+m.userId+'" data-rmname="'+esc(m.name)+'">'+tr('profile_remove')+'</button>':'';
       return '<div class="wpf-member"><span class="wpf-av sm">'+wInit(m.name)+'</span><span style="flex:1;min-width:0">'+esc(m.name)+'</span>'+badge+act+'</div>';
     }).join('');
-    var langs=['fr','en','ro'].map(function(l){return '<button class="wpf-chip'+(d.lang===l?' on':'')+'" data-pflang="'+l+'">'+l.toUpperCase()+'</button>';}).join('');
+    var langs=['fr','en','ro'].map(function(l){return '<button class="wpf-chip'+(LANG===l?' on':'')+'" data-pflang="'+l+'">'+l.toUpperCase()+'</button>';}).join('');
     var curs=['RON','EUR','USD'].map(function(c){return '<button class="wpf-chip'+(d.currency===c?' on':'')+'" data-pfcur="'+c+'">'+c+'</button>';}).join('');
-    var leaveBtn=(!isAdmin)?'<button class="wpf-btn ghost" id="wpfLeave" style="margin-top:10px">Quitter le foyer</button>':'';
+    var leaveBtn=(!isAdmin)?'<button class="wpf-btn ghost" id="wpfLeave" style="margin-top:10px">'+tr('profile_leave')+'</button>':'';
     ge('viewProfile').innerHTML='<div class="wpf-grid">'
-      +'<div class="card wpf-head"><span class="wpf-av">'+wInit(d.name)+'</span><div style="flex:1;min-width:0"><div class="wpf-name" id="wpfNameDisp">'+esc(d.name)+'</div><div class="wpf-email">'+esc(d.email)+'</div></div><button class="wpf-mini" id="wpfEditName">Modifier</button></div>'
-      +'<div class="card"><div class="wpf-lbl">Foyer · '+((d.members||[]).length)+' membre(s)</div>'+members+'<button class="wpf-btn" id="wpfInvite">+ Inviter un partenaire</button><div id="wpfInviteBox"></div>'+leaveBtn+'</div>'
-      +'<div class="card"><div class="wpf-lbl">Langue</div><div class="wpf-chips">'+langs+'</div><div class="wpf-lbl" style="margin-top:16px">Devise</div><div class="wpf-chips">'+curs+'</div></div>'
-      +'<div class="card"><div class="wpf-lbl">Sécurité</div><button class="wpf-btn ghost" id="wpfPwdToggle">Changer le mot de passe</button><div id="wpfPwdForm" style="display:none;margin-top:10px"><input class="wpf-inp" id="wpfCur" type="password" placeholder="Mot de passe actuel" autocomplete="current-password"><input class="wpf-inp" id="wpfNew" type="password" placeholder="Nouveau (min. 8)" autocomplete="new-password"><input class="wpf-inp" id="wpfCnf" type="password" placeholder="Confirmer" autocomplete="new-password"><button class="wpf-btn" id="wpfPwdSave">Enregistrer</button></div></div>'
-      +'<div class="card"><div class="wpf-lbl" style="color:var(--color-danger)">Zone danger</div><form method="POST" action="/auth/logout"><button class="wpf-btn ghost" type="submit">Se déconnecter</button></form><button class="wpf-btn danger" id="wpfDelete" style="margin-top:10px">Supprimer mon compte</button></div>'
+      +'<div class="card wpf-head"><span class="wpf-av">'+wInit(d.name)+'</span><div style="flex:1;min-width:0"><div class="wpf-name" id="wpfNameDisp">'+esc(d.name)+'</div><div class="wpf-email">'+esc(d.email)+'</div></div><button class="wpf-mini" id="wpfEditName">'+tr('profile_edit')+'</button></div>'
+      +'<div class="card"><div class="wpf-lbl">'+tr('profile_household')+' · '+((d.members||[]).length)+' '+tr('profile_members')+'</div>'+members+'<button class="wpf-btn" id="wpfInvite">'+tr('profile_invite')+'</button><div id="wpfInviteBox"></div>'+leaveBtn+'</div>'
+      +'<div class="card"><div class="wpf-lbl">'+tr('profile_language')+'</div><div class="wpf-chips">'+langs+'</div><div class="wpf-lbl" style="margin-top:16px">'+tr('profile_currency')+'</div><div class="wpf-chips">'+curs+'</div></div>'
+      +'<div class="card"><div class="wpf-lbl">'+tr('profile_security')+'</div><button class="wpf-btn ghost" id="wpfPwdToggle">'+tr('profile_change_pwd')+'</button><div id="wpfPwdForm" style="display:none;margin-top:10px"><input class="wpf-inp" id="wpfCur" type="password" placeholder="'+tr('profile_cur_pwd')+'" autocomplete="current-password"><input class="wpf-inp" id="wpfNew" type="password" placeholder="'+tr('profile_new_pwd')+'" autocomplete="new-password"><input class="wpf-inp" id="wpfCnf" type="password" placeholder="'+tr('profile_confirm_pwd')+'" autocomplete="new-password"><button class="wpf-btn" id="wpfPwdSave">'+tr('btn_save')+'</button></div></div>'
+      +'<div class="card"><div class="wpf-lbl" style="color:var(--color-danger)">'+tr('profile_danger')+'</div><form method="POST" action="/auth/logout"><button class="wpf-btn ghost" type="submit">'+tr('profile_logout')+'</button></form><button class="wpf-btn danger" id="wpfDelete" style="margin-top:10px">'+tr('profile_delete')+'</button></div>'
       +'</div>';
     ge('wpfInvite').addEventListener('click',wCreateInvite);
     ge('wpfEditName').addEventListener('click',wEditName);
@@ -2688,7 +2825,7 @@ function renderProfileWeb(){
     ge('wpfDelete').addEventListener('click',wDeleteAccount);
     if(ge('wpfLeave'))ge('wpfLeave').addEventListener('click',wLeave);
     document.querySelectorAll('#viewProfile [data-remove]').forEach(function(b){b.addEventListener('click',function(){wRemoveMember(b.getAttribute('data-remove'),b.getAttribute('data-rmname'));});});
-    document.querySelectorAll('[data-pflang]').forEach(function(b){b.addEventListener('click',function(){wSavePrefs({lang:b.getAttribute('data-pflang')});});});
+    document.querySelectorAll('[data-pflang]').forEach(function(b){b.addEventListener('click',function(){setLangWeb(b.getAttribute('data-pflang'));});});
     document.querySelectorAll('[data-pfcur]').forEach(function(b){b.addEventListener('click',function(){wSavePrefs({currency:b.getAttribute('data-pfcur')});});});
   }).catch(function(){ge('viewProfile').innerHTML='<div class="card">Session expirée. <a href="/login">Se reconnecter</a></div>';});
 }
@@ -2707,18 +2844,26 @@ function showView(v){
   currentView=v;
   VIEWS.forEach(function(x){var el=ge('view'+cap(x));if(el)el.style.display=(x===v)?'block':'none';});
   document.querySelectorAll('.sb-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===v);});
-  ge('tbTitle').textContent=TITLES[v]||v;
+  ge('tbTitle').textContent=tr('nav_'+v);
   ge('weekSel').style.display=(v==='overview'||v==='planning')?'flex':'none';
   renderCurrent();
 }
+// Apply the current LANG to static chrome (sidebar labels, top-bar title), then re-render.
+function applyLang(){
+  document.querySelectorAll('.sb-item').forEach(function(b){var lbl=b.querySelector('.sb-label');if(lbl)lbl.textContent=tr('nav_'+b.getAttribute('data-view'));});
+  ge('tbTitle').textContent=tr('nav_'+currentView);
+  setSync('ok');
+  renderCurrent();
+}
+function setLangWeb(l){if(!TR[l])return;LANG=l;wpost('/api/user/prefs',{lang:l}).catch(function(){});applyLang();}
 
-function setSync(s){var c=ge('syncChip');if(!c)return;c.className='sync-chip '+(s==='ok'?'ok':'err');c.querySelector('.lbl').textContent=(s==='ok'?'Synced':'Hors ligne');}
+function setSync(s){var c=ge('syncChip');if(!c)return;c.className='sync-chip '+(s==='ok'?'ok':'err');c.querySelector('.lbl').textContent=(s==='ok'?tr('synced'):tr('offline'));}
 
 function fetchState(){
   return fetch('/api/state').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WS=d;setSync('ok');renderCurrent();}).catch(function(){setSync('err');});
 }
-// Pull the current user's name (toggle attribution) + currency pref before first paint.
-function loadMe(){return fetch('/auth/me').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WHO=d.name||'';CURRENCY=d.currency||'RON';}).catch(function(){});}
+// Pull the user's name + currency + language + budget pref before first paint.
+function loadMe(){return fetch('/auth/me').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){WHO=d.name||'';CURRENCY=d.currency||'RON';if(d.lang&&TR[d.lang])LANG=d.lang;BUDGET_CEILING=d.budgetCeiling||null;applyLang();}).catch(function(){});}
 
 (function init(){
   currentWeek=currentISOWeek();
@@ -2930,11 +3075,11 @@ function clearProfileCache(userId) { PROFILE_CACHE.delete(userId); }
 async function profileFor(userId, token, env) {
   const c = PROFILE_CACHE.get(userId);
   if (c && (Date.now() - c.at) < 30000) return c;
-  const r = await supabase(env, 'profiles?id=eq.' + userId + '&select=household_id,name,lang,currency', {}, token);
+  const r = await supabase(env, 'profiles?id=eq.' + userId + '&select=household_id,name,lang,currency,budget_ceiling', {}, token);
   if (!r.ok) return null;
   const rows = await r.json();
   if (!rows[0]) return null;
-  const rec = { householdId: rows[0].household_id, name: rows[0].name, lang: rows[0].lang, currency: rows[0].currency, at: Date.now() };
+  const rec = { householdId: rows[0].household_id, name: rows[0].name, lang: rows[0].lang, currency: rows[0].currency, budgetCeiling: rows[0].budget_ceiling, at: Date.now() };
   PROFILE_CACHE.set(userId, rec);
   return rec;
 }
@@ -3260,7 +3405,7 @@ export default {
       // momentarily returns a partial set right after an invite is accepted.
       if (!members.some(m => m.userId === u.userId)) members.unshift({ userId: u.userId, name: u.name, role: 'admin' });
       const me = members.find(m => m.userId === u.userId);
-      return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', role: me ? me.role : 'member', members });
+      return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', budgetCeiling: prof ? (prof.budgetCeiling || null) : null, role: me ? me.role : 'member', members });
     }
 
     // /invite/{token}  (GET = accept page, POST .../accept = join). Backed by invitations table.
@@ -3339,6 +3484,7 @@ export default {
       if (b.lang) patch.lang = b.lang;
       if (b.currency) patch.currency = b.currency;
       if (b.name && String(b.name).trim()) patch.name = String(b.name).trim();
+      if (b.budgetCeiling !== undefined) patch.budget_ceiling = (b.budgetCeiling === null ? null : Number(b.budgetCeiling));
       const r = await supabase(env, 'profiles?id=eq.' + UID, { method: 'PATCH', body: JSON.stringify(patch) }, TOKEN);
       clearProfileCache(UID);
       if (!r.ok) return jsonRes({ error: 'prefs_failed' }, 500);
