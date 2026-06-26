@@ -552,6 +552,15 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .pf-invite input{flex:1;min-width:0;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--color-surface-sunken);font-size:12px;color:var(--text)}
 .pf-copy{background:var(--color-primary);color:#fff;border:none;border-radius:10px;padding:0 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
 .pf-hint{font-size:11px;color:var(--text2);margin-top:6px}
+.pf-sec{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin:20px 14px 6px}
+.pf-sec.danger{color:var(--color-danger)}
+.pf-mname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-role{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text2);background:var(--bg);border:1px solid var(--border);border-radius:9999px;padding:3px 8px;flex-shrink:0}
+.pf-role.admin{color:var(--color-primary);background:var(--color-primary-light);border-color:var(--color-primary-light)}
+.pf-mini{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;flex-shrink:0}
+.pf-mini.danger{color:var(--color-danger)}
+.pf-btn.ghost{background:var(--white);color:var(--text);border:1.5px solid var(--border)}
+.pf-inp{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:15px;color:var(--text);margin-bottom:8px;font-family:inherit}
 `;
 }
 
@@ -1590,20 +1599,64 @@ function recIngRowHTML(ing) {
 function initialsOf(name) { name = (name || '').trim(); if (!name) return '?'; var p = name.split(/\\s+/); return (p[0].charAt(0) + (p[1] ? p[1].charAt(0) : '')).toUpperCase(); }
 function renderProfile() {
   fetch('/auth/me').then(function(r){ if (!r.ok) throw new Error('http'); return r.json(); }).then(function(d){
-    var members = (d.members || []).map(function(m){ return '<div class="pf-member"><span class="pf-av sm">' + initialsOf(m.name) + '</span><span>' + m.name + '</span></div>'; }).join('');
+    var isAdmin = d.role === 'admin';
+    var members = (d.members || []).map(function(m){
+      var badge = '<span class="pf-role' + (m.role === 'admin' ? ' admin' : '') + '">' + (m.role === 'admin' ? 'Admin' : 'Membre') + '</span>';
+      var act = (isAdmin && m.userId !== d.userId) ? '<button class="pf-mini danger" data-remove="' + m.userId + '" data-rmname="' + escAttr(m.name) + '">Retirer</button>' : '';
+      return '<div class="pf-member"><span class="pf-av sm">' + initialsOf(m.name) + '</span><span class="pf-mname">' + m.name + '</span>' + badge + act + '</div>';
+    }).join('');
     var langs = ['fr','en','ro'].map(function(l){ return '<button class="pf-chip' + (d.lang === l ? ' on' : '') + '" data-pflang="' + l + '">' + l.toUpperCase() + '</button>'; }).join('');
     var curs  = ['RON','EUR','USD'].map(function(c){ return '<button class="pf-chip' + (d.currency === c ? ' on' : '') + '" data-pfcur="' + c + '">' + c + '</button>'; }).join('');
+    var leaveBtn = (!isAdmin) ? '<button class="pf-btn ghost" id="pfLeave" style="margin-top:10px">Quitter le foyer</button>' : '';
     ge('profileBody').innerHTML =
-        '<div class="pf-card pf-head"><span class="pf-av">' + initialsOf(d.name) + '</span><div><div class="pf-name">' + d.name + '</div><div class="pf-email">' + d.email + '</div></div></div>'
-      + '<div class="pf-card"><div class="pf-lbl">Foyer · ' + ((d.members || []).length) + ' membre(s)</div><div class="pf-members">' + members + '</div>'
-      + '<button class="pf-btn" id="pfInvite">&#65291; Inviter un partenaire</button><div id="pfInviteBox"></div></div>'
-      + '<div class="pf-card"><div class="pf-lbl">Langue</div><div class="pf-chips">' + langs + '</div></div>'
-      + '<div class="pf-card"><div class="pf-lbl">Devise</div><div class="pf-chips">' + curs + '</div></div>'
-      + '<form method="POST" action="/auth/logout"><button class="pf-btn danger" type="submit">Se déconnecter</button></form>';
+        '<div class="pf-sec">Mon compte</div>'
+      + '<div class="pf-card pf-head"><span class="pf-av">' + initialsOf(d.name) + '</span><div style="flex:1;min-width:0"><div class="pf-name" id="pfNameDisp">' + d.name + '</div><div class="pf-email">' + d.email + '</div></div><button class="pf-mini" id="pfEditName">Modifier</button></div>'
+      + '<div class="pf-sec">Foyer · ' + ((d.members || []).length) + ' membre(s)</div>'
+      + '<div class="pf-card"><div class="pf-members">' + members + '</div>'
+      + '<button class="pf-btn" id="pfInvite">&#65291; Inviter un partenaire</button><div id="pfInviteBox"></div>' + leaveBtn + '</div>'
+      + '<div class="pf-sec">Préférences</div>'
+      + '<div class="pf-card"><div class="pf-lbl">Langue</div><div class="pf-chips">' + langs + '</div><div class="pf-lbl" style="margin-top:14px">Devise</div><div class="pf-chips">' + curs + '</div></div>'
+      + '<div class="pf-sec">Sécurité</div>'
+      + '<div class="pf-card"><button class="pf-btn ghost" id="pfPwdToggle">Changer le mot de passe</button>'
+      + '<div id="pfPwdForm" style="display:none;margin-top:10px"><input class="pf-inp" id="pfCur" type="password" placeholder="Mot de passe actuel" autocomplete="current-password"><input class="pf-inp" id="pfNew" type="password" placeholder="Nouveau (min. 8)" autocomplete="new-password"><input class="pf-inp" id="pfCnf" type="password" placeholder="Confirmer" autocomplete="new-password"><button class="pf-btn" id="pfPwdSave">Enregistrer</button></div></div>'
+      + '<div class="pf-sec danger">Zone danger</div>'
+      + '<div class="pf-card"><form method="POST" action="/auth/logout"><button class="pf-btn ghost" type="submit">Se déconnecter</button></form><button class="pf-btn danger" id="pfDelete" style="margin-top:10px">Supprimer mon compte</button></div>';
     ge('pfInvite').addEventListener('click', createInvite);
+    ge('pfEditName').addEventListener('click', editProfileName);
+    ge('pfPwdToggle').addEventListener('click', function(){ var f = ge('pfPwdForm'); f.style.display = (f.style.display === 'none' ? 'block' : 'none'); });
+    ge('pfPwdSave').addEventListener('click', changePassword);
+    ge('pfDelete').addEventListener('click', deleteAccount);
+    if (ge('pfLeave')) ge('pfLeave').addEventListener('click', leaveHousehold);
+    document.querySelectorAll('[data-remove]').forEach(function(b){ b.addEventListener('click', function(){ removeMember(b.getAttribute('data-remove'), b.getAttribute('data-rmname')); }); });
     document.querySelectorAll('[data-pflang]').forEach(function(b){ b.addEventListener('click', function(){ var l = b.getAttribute('data-pflang'); savePrefs({lang:l}); setLang(l); }); });
     document.querySelectorAll('[data-pfcur]').forEach(function(b){ b.addEventListener('click', function(){ savePrefs({currency:b.getAttribute('data-pfcur')}); }); });
   }).catch(function(){ ge('profileBody').innerHTML = '<div class="pf-card">Session expirée. <a href="/login">Se reconnecter</a></div>'; });
+}
+function editProfileName() {
+  var cur = ge('pfNameDisp') ? ge('pfNameDisp').textContent : '';
+  var n = prompt('Votre nom', cur); if (n === null) return; n = n.trim(); if (!n) return;
+  savePrefs({ name: n });
+}
+function changePassword() {
+  var c = ge('pfCur').value, nw = ge('pfNew').value, cf = ge('pfCnf').value;
+  if (nw.length < 8) { showToast('Min. 8 caractères', true); return; }
+  if (nw !== cf) { showToast('Les mots de passe ne correspondent pas', true); return; }
+  apiPost('/auth/change-password', { currentPassword: c, newPassword: nw }).then(function(){
+    showToast('Mot de passe changé ✓', false); ge('pfPwdForm').style.display = 'none';
+    ge('pfCur').value = ''; ge('pfNew').value = ''; ge('pfCnf').value = '';
+  }).catch(function(){ showToast('Mot de passe actuel incorrect', true); });
+}
+function removeMember(id, name) {
+  if (!confirm('Retirer ' + name + ' du foyer ?')) return;
+  apiPost('/api/household/remove-member', { userId: id }).then(function(){ showToast('Membre retiré', false); renderProfile(); }).catch(function(){ showToast(T.toastErr, true); });
+}
+function leaveHousehold() {
+  if (!confirm('Quitter ce foyer ? Vous aurez votre propre liste.')) return;
+  apiPost('/api/household/leave', {}).then(function(){ showToast('Foyer quitté', false); renderProfile(); }).catch(function(){ showToast(T.toastErr, true); });
+}
+function deleteAccount() {
+  if (!confirm('Supprimer définitivement votre compte ? Action irréversible.')) return;
+  apiPost('/auth/delete-account', {}).then(function(){ window.location.href = '/login'; }).catch(function(){ showToast(T.toastErr, true); });
 }
 function createInvite() {
   var btn = ge('pfInvite'); btn.disabled = true; btn.textContent = '…';
@@ -2209,6 +2262,12 @@ body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-t
 .wpf-member{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;margin-bottom:8px}
 .wpf-btn{margin-top:12px;width:100%;background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:12px;font-size:14px;font-weight:700;cursor:pointer}
 .wpf-btn.danger{margin-top:0;background:var(--color-surface);color:var(--color-danger);border:1.5px solid var(--color-border)}
+.wpf-btn.ghost{background:var(--color-surface);color:var(--color-text);border:1.5px solid var(--color-border)}
+.wpf-role{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--color-text-muted);background:var(--color-surface-sunken);border:1px solid var(--color-border);border-radius:9999px;padding:3px 8px;flex-shrink:0}
+.wpf-role.admin{color:var(--color-primary);background:var(--color-primary-light);border-color:var(--color-primary-light)}
+.wpf-mini{background:var(--color-surface-sunken);border:1px solid var(--color-border);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--color-text-muted);cursor:pointer;flex-shrink:0}
+.wpf-mini.danger{color:var(--color-danger)}
+.wpf-inp{width:100%;padding:10px 12px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-sunken);font-size:14px;color:var(--color-text);margin-bottom:8px;font-family:inherit}
 .wpf-chips{display:flex;gap:8px}
 .wpf-chip{flex:1;background:var(--color-surface-sunken);border:1.5px solid var(--color-border);border-radius:10px;padding:10px;font-size:14px;font-weight:600;color:var(--color-text-muted);cursor:pointer}
 .wpf-chip.on{border-color:var(--color-primary);background:var(--color-primary-light);color:var(--color-primary)}
@@ -2490,19 +2549,40 @@ function renderCurrent(){
 function wInit(n){n=(n||'').trim();if(!n)return '?';var p=n.split(/\\s+/);return (p[0].charAt(0)+(p[1]?p[1].charAt(0):'')).toUpperCase();}
 function renderProfileWeb(){
   fetch('/auth/me').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){
-    var members=(d.members||[]).map(function(m){return '<div class="wpf-member"><span class="wpf-av sm">'+wInit(m.name)+'</span>'+m.name+'</div>';}).join('');
+    var isAdmin=d.role==='admin';
+    var members=(d.members||[]).map(function(m){
+      var badge='<span class="wpf-role'+(m.role==='admin'?' admin':'')+'">'+(m.role==='admin'?'Admin':'Membre')+'</span>';
+      var act=(isAdmin&&m.userId!==d.userId)?'<button class="wpf-mini danger" data-remove="'+m.userId+'" data-rmname="'+esc(m.name)+'">Retirer</button>':'';
+      return '<div class="wpf-member"><span class="wpf-av sm">'+wInit(m.name)+'</span><span style="flex:1;min-width:0">'+esc(m.name)+'</span>'+badge+act+'</div>';
+    }).join('');
     var langs=['fr','en','ro'].map(function(l){return '<button class="wpf-chip'+(d.lang===l?' on':'')+'" data-pflang="'+l+'">'+l.toUpperCase()+'</button>';}).join('');
     var curs=['RON','EUR','USD'].map(function(c){return '<button class="wpf-chip'+(d.currency===c?' on':'')+'" data-pfcur="'+c+'">'+c+'</button>';}).join('');
+    var leaveBtn=(!isAdmin)?'<button class="wpf-btn ghost" id="wpfLeave" style="margin-top:10px">Quitter le foyer</button>':'';
     ge('viewProfile').innerHTML='<div class="wpf-grid">'
-      +'<div class="card wpf-head"><span class="wpf-av">'+wInit(d.name)+'</span><div><div class="wpf-name">'+d.name+'</div><div class="wpf-email">'+d.email+'</div></div></div>'
-      +'<div class="card"><div class="wpf-lbl">Foyer · '+((d.members||[]).length)+' membre(s)</div>'+members+'<button class="wpf-btn" id="wpfInvite">+ Inviter un partenaire</button><div id="wpfInviteBox"></div></div>'
+      +'<div class="card wpf-head"><span class="wpf-av">'+wInit(d.name)+'</span><div style="flex:1;min-width:0"><div class="wpf-name" id="wpfNameDisp">'+esc(d.name)+'</div><div class="wpf-email">'+esc(d.email)+'</div></div><button class="wpf-mini" id="wpfEditName">Modifier</button></div>'
+      +'<div class="card"><div class="wpf-lbl">Foyer · '+((d.members||[]).length)+' membre(s)</div>'+members+'<button class="wpf-btn" id="wpfInvite">+ Inviter un partenaire</button><div id="wpfInviteBox"></div>'+leaveBtn+'</div>'
       +'<div class="card"><div class="wpf-lbl">Langue</div><div class="wpf-chips">'+langs+'</div><div class="wpf-lbl" style="margin-top:16px">Devise</div><div class="wpf-chips">'+curs+'</div></div>'
-      +'<div class="card"><form method="POST" action="/auth/logout"><button class="wpf-btn danger" type="submit">Se déconnecter</button></form></div></div>';
+      +'<div class="card"><div class="wpf-lbl">Sécurité</div><button class="wpf-btn ghost" id="wpfPwdToggle">Changer le mot de passe</button><div id="wpfPwdForm" style="display:none;margin-top:10px"><input class="wpf-inp" id="wpfCur" type="password" placeholder="Mot de passe actuel" autocomplete="current-password"><input class="wpf-inp" id="wpfNew" type="password" placeholder="Nouveau (min. 8)" autocomplete="new-password"><input class="wpf-inp" id="wpfCnf" type="password" placeholder="Confirmer" autocomplete="new-password"><button class="wpf-btn" id="wpfPwdSave">Enregistrer</button></div></div>'
+      +'<div class="card"><div class="wpf-lbl" style="color:var(--color-danger)">Zone danger</div><form method="POST" action="/auth/logout"><button class="wpf-btn ghost" type="submit">Se déconnecter</button></form><button class="wpf-btn danger" id="wpfDelete" style="margin-top:10px">Supprimer mon compte</button></div>'
+      +'</div>';
     ge('wpfInvite').addEventListener('click',wCreateInvite);
+    ge('wpfEditName').addEventListener('click',wEditName);
+    ge('wpfPwdToggle').addEventListener('click',function(){var f=ge('wpfPwdForm');f.style.display=(f.style.display==='none'?'block':'none');});
+    ge('wpfPwdSave').addEventListener('click',wChangePassword);
+    ge('wpfDelete').addEventListener('click',wDeleteAccount);
+    if(ge('wpfLeave'))ge('wpfLeave').addEventListener('click',wLeave);
+    document.querySelectorAll('#viewProfile [data-remove]').forEach(function(b){b.addEventListener('click',function(){wRemoveMember(b.getAttribute('data-remove'),b.getAttribute('data-rmname'));});});
     document.querySelectorAll('[data-pflang]').forEach(function(b){b.addEventListener('click',function(){wSavePrefs({lang:b.getAttribute('data-pflang')});});});
     document.querySelectorAll('[data-pfcur]').forEach(function(b){b.addEventListener('click',function(){wSavePrefs({currency:b.getAttribute('data-pfcur')});});});
   }).catch(function(){ge('viewProfile').innerHTML='<div class="card">Session expirée. <a href="/login">Se reconnecter</a></div>';});
 }
+// Plain POST that returns parsed JSON (does NOT touch WS) — for auth/household actions.
+function wpost(path,body){return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(function(r){if(!r.ok)throw r.status;return r.json().catch(function(){return {};});});}
+function wEditName(){var cur=ge('wpfNameDisp')?ge('wpfNameDisp').textContent:'';var n=prompt('Votre nom',cur);if(n===null)return;n=n.trim();if(!n)return;wpost('/api/user/prefs',{name:n}).then(function(){renderProfileWeb();webToast('Nom mis à jour ✓');}).catch(function(){webToast('Erreur');});}
+function wChangePassword(){var c=ge('wpfCur').value,nw=ge('wpfNew').value,cf=ge('wpfCnf').value;if(nw.length<8){webToast('Min. 8 caractères');return;}if(nw!==cf){webToast('Ne correspondent pas');return;}wpost('/auth/change-password',{currentPassword:c,newPassword:nw}).then(function(){webToast('Mot de passe changé ✓');ge('wpfPwdForm').style.display='none';}).catch(function(){webToast('Mot de passe actuel incorrect');});}
+function wRemoveMember(id,name){if(!confirm('Retirer '+name+' du foyer ?'))return;wpost('/api/household/remove-member',{userId:id}).then(function(){webToast('Membre retiré');renderProfileWeb();}).catch(function(){webToast('Erreur');});}
+function wLeave(){if(!confirm('Quitter ce foyer ? Vous aurez votre propre liste.'))return;wpost('/api/household/leave',{}).then(function(){webToast('Foyer quitté');renderProfileWeb();}).catch(function(){webToast('Erreur');});}
+function wDeleteAccount(){if(!confirm('Supprimer définitivement votre compte ? Action irréversible.'))return;wpost('/auth/delete-account',{}).then(function(){window.location.href='/login';}).catch(function(){webToast('Erreur');});}
 function wCreateInvite(){var b=ge('wpfInvite');b.disabled=true;b.textContent='…';fetch('/api/invite/create',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(r){return r.json();}).then(function(d){ge('wpfInviteBox').innerHTML='<div class="wpf-invite"><input id="wpfLink" readonly value="'+d.inviteUrl+'"><button class="wpf-copy" id="wpfCopy">Copier</button></div>';b.style.display='none';ge('wpfCopy').addEventListener('click',function(){var i=ge('wpfLink');i.select();if(navigator.clipboard){navigator.clipboard.writeText(i.value);ge('wpfCopy').textContent='Copié ✓';}});}).catch(function(){b.disabled=false;b.textContent='+ Inviter un partenaire';});}
 function wSavePrefs(p){if(p.currency)CURRENCY=p.currency;return apiPost('/api/user/prefs',p).then(function(){renderProfileWeb();}).catch(function(){});}
 
@@ -2680,6 +2760,38 @@ function gotrue(env, path, body) {
     headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
+}
+// Service-role REST — bypasses RLS. Use only for trusted server ops (acting on OTHER
+// users' rows / admin tasks) after the caller's JWT has been validated.
+function supabaseAdmin(env, path, options) {
+  const o = options || {};
+  return fetch(env.SUPABASE_URL + '/rest/v1/' + path, {
+    method: o.method || 'GET',
+    headers: Object.assign({
+      'apikey': env.SUPABASE_SERVICE_KEY,
+      'Authorization': 'Bearer ' + env.SUPABASE_SERVICE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': o.prefer || 'return=representation'
+    }, o.headers || {}),
+    body: o.body
+  });
+}
+// Delete a Supabase auth user via the admin API (cascades the profile row).
+function adminDeleteUser(env, userId) {
+  return fetch(env.SUPABASE_URL + '/auth/v1/admin/users/' + userId, {
+    method: 'DELETE',
+    headers: { 'apikey': env.SUPABASE_SERVICE_KEY, 'Authorization': 'Bearer ' + env.SUPABASE_SERVICE_KEY }
+  });
+}
+// Create a fresh solo household and move a profile into it as its admin. → new household id | null
+async function moveToNewHousehold(env, userId) {
+  const hr = await supabaseAdmin(env, 'households', { method: 'POST', body: '{}' });
+  if (!hr.ok) return null;
+  const rows = await hr.json();
+  const hid = rows[0] && rows[0].id;
+  if (!hid) return null;
+  await supabaseAdmin(env, 'profiles?id=eq.' + userId, { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ household_id: hid, role: 'admin' }) });
+  return hid;
 }
 
 // userId → { householdId, name, lang, currency } short-lived isolate cache
@@ -2958,6 +3070,45 @@ export default {
       return redirectRes('/login', [clearCookie('sb-access-token'), clearCookie('sb-refresh-token')]);
     }
 
+    // POST /auth/change-password {currentPassword, newPassword} — re-auth, then Supabase PUT /user
+    if (path === '/auth/change-password' && method === 'POST') {
+      const u = await getUser(request, env);
+      if (!u) return jsonRes({ error: 'unauthorized' }, 401);
+      const b = await parseBody(request);
+      const cur = b.currentPassword || '', nw = b.newPassword || '';
+      if (nw.length < 8) return jsonRes({ error: 'weak_password' }, 422);
+      const re = await gotrue(env, 'token?grant_type=password', { email: u.email, password: cur });
+      if (!re.ok) return jsonRes({ error: 'wrong_password' }, 401);                    // current password wrong
+      const up = await fetch(env.SUPABASE_URL + '/auth/v1/user', { method: 'PUT', headers: { 'apikey': env.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + u.token, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: nw }) });
+      if (!up.ok) return jsonRes({ error: 'update_failed' }, 500);
+      return jsonRes({ ok: true });
+    }
+
+    // POST /auth/delete-account — delete the Supabase user (admin) + clean an emptied household
+    if (path === '/auth/delete-account' && method === 'POST') {
+      const u = await getUser(request, env);
+      if (!u) return jsonRes({ error: 'unauthorized' }, 401);
+      const hid = u.householdId;
+      const del = await adminDeleteUser(env, u.userId);                                // cascades the profile
+      if (!del.ok && del.status !== 404) return jsonRes({ error: 'delete_failed' }, 500);
+      if (hid) { try {
+        const left = await supabaseAdmin(env, 'profiles?household_id=eq.' + hid + '&select=id', {});
+        const remaining = left.ok ? (await left.json()).length : 1;
+        if (remaining === 0) {                                                          // last member → wipe household data
+          for (const t of ['meal_plans', 'recipes', 'shopping_history', 'invitations'])
+            await supabaseAdmin(env, t + '?household_id=eq.' + hid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+          await supabaseAdmin(env, 'households?id=eq.' + hid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+          await env.KV.delete('h:' + hid + ':state');
+          await env.KV.delete('h:' + hid + ':sbmigrated');
+        }
+      } catch (e) {} }
+      clearProfileCache(u.userId);
+      const h = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      h.append('Set-Cookie', clearCookie('sb-access-token'));
+      h.append('Set-Cookie', clearCookie('sb-refresh-token'));
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: h });
+    }
+
     // GET /auth/me → current user JSON (from profiles)
     if (path === '/auth/me' && method === 'GET') {
       const u = await getUser(request, env);
@@ -2967,13 +3118,14 @@ export default {
       // household-wide profiles SELECT RLS policy (see migration 0002).
       let members = [];
       if (prof && prof.householdId) {
-        const mr = await supabase(env, 'profiles?household_id=eq.' + prof.householdId + '&select=id,name&order=created_at', {}, u.token);
-        if (mr.ok) members = (await mr.json()).map(m => ({ userId: m.id, name: m.name }));
+        const mr = await supabase(env, 'profiles?household_id=eq.' + prof.householdId + '&select=id,name,role&order=created_at', {}, u.token);
+        if (mr.ok) members = (await mr.json()).map(m => ({ userId: m.id, name: m.name, role: m.role || 'member' }));
       }
       // Defensive: the requester must always appear exactly once, even if RLS
       // momentarily returns a partial set right after an invite is accepted.
-      if (!members.some(m => m.userId === u.userId)) members.unshift({ userId: u.userId, name: u.name });
-      return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', members });
+      if (!members.some(m => m.userId === u.userId)) members.unshift({ userId: u.userId, name: u.name, role: 'admin' });
+      const me = members.find(m => m.userId === u.userId);
+      return jsonRes({ userId: u.userId, name: u.name, email: u.email, householdId: prof ? prof.householdId : null, lang: prof ? (prof.lang || 'fr') : 'fr', currency: prof ? (prof.currency || 'RON') : 'RON', role: me ? me.role : 'member', members });
     }
 
     // /invite/{token}  (GET = accept page, POST .../accept = join). Backed by invitations table.
@@ -2987,8 +3139,8 @@ export default {
         if (!ir.ok) return redirectRes('/?error=invite_invalid');
         const inv = (await ir.json())[0];
         if (!inv || inv.used || new Date(inv.expires_at).getTime() < Date.now()) return redirectRes('/?error=invite_expired');
-        // Join: repoint my profile at the inviter's household, then burn the token.
-        await supabase(env, 'profiles?id=eq.' + u.userId, { method: 'PATCH', body: JSON.stringify({ household_id: inv.household_id }) }, u.token);
+        // Join: repoint my profile at the inviter's household (now a 'member'), then burn the token.
+        await supabase(env, 'profiles?id=eq.' + u.userId, { method: 'PATCH', body: JSON.stringify({ household_id: inv.household_id, role: 'member' }) }, u.token);
         await supabase(env, 'invitations?id=eq.' + inv.id, { method: 'PATCH', body: JSON.stringify({ used: true }) }, u.token);
         clearProfileCache(u.userId);
         return redirectRes('/');
@@ -3045,16 +3197,43 @@ export default {
       return jsonRes({ inviteUrl: url.origin + '/invite/' + token });
     }
 
-    // POST /api/user/prefs {lang?, currency?}  (auth) → PATCH profiles
+    // POST /api/user/prefs {lang?, currency?, name?}  (auth) → PATCH own profile
     if (path === '/api/user/prefs' && method === 'POST') {
       const b = await parseBody(request);
       const patch = {};
       if (b.lang) patch.lang = b.lang;
       if (b.currency) patch.currency = b.currency;
+      if (b.name && String(b.name).trim()) patch.name = String(b.name).trim();
       const r = await supabase(env, 'profiles?id=eq.' + UID, { method: 'PATCH', body: JSON.stringify(patch) }, TOKEN);
       clearProfileCache(UID);
       if (!r.ok) return jsonRes({ error: 'prefs_failed' }, 500);
-      return jsonRes({ ok: true, lang: b.lang, currency: b.currency });
+      return jsonRes({ ok: true, lang: b.lang, currency: b.currency, name: patch.name });
+    }
+
+    // POST /api/household/remove-member {userId}  (admin only) → move target to a new solo household
+    if (path === '/api/household/remove-member' && method === 'POST') {
+      const b = await parseBody(request);
+      const target = b.userId;
+      if (!target || target === UID) return jsonRes({ error: 'bad_target' }, 400);
+      const rows = await (await supabaseAdmin(env, 'profiles?household_id=eq.' + HID + '&select=id,role', {})).json();
+      const me = rows.find(r => r.id === UID), tgt = rows.find(r => r.id === target);
+      if (!me || me.role !== 'admin') return jsonRes({ error: 'not_admin' }, 403);
+      if (!tgt) return jsonRes({ error: 'not_in_household' }, 404);
+      const nh = await moveToNewHousehold(env, target);                      // service_role: edits another user's row
+      if (!nh) return jsonRes({ error: 'move_failed' }, 500);
+      clearProfileCache(target);
+      return jsonRes({ ok: true });
+    }
+
+    // POST /api/household/leave  (non-admin) → move self to a new solo household
+    if (path === '/api/household/leave' && method === 'POST') {
+      const rows = await (await supabaseAdmin(env, 'profiles?household_id=eq.' + HID + '&select=id,role', {})).json();
+      const me = rows.find(r => r.id === UID);
+      if (me && me.role === 'admin' && rows.length > 1) return jsonRes({ error: 'admin_cannot_leave' }, 400);
+      const nh = await moveToNewHousehold(env, UID);
+      if (!nh) return jsonRes({ error: 'move_failed' }, 500);
+      clearProfileCache(UID);
+      return jsonRes({ ok: true });
     }
 
     /**
