@@ -2784,13 +2784,27 @@ function adminDeleteUser(env, userId) {
   });
 }
 // Create a fresh solo household and move a profile into it as its admin. → new household id | null
+// Cleans up the user's previous household if moving leaves it empty (no orphans).
 async function moveToNewHousehold(env, userId) {
+  const oldR = await supabaseAdmin(env, 'profiles?id=eq.' + userId + '&select=household_id', {});
+  const oldHid = oldR.ok ? ((await oldR.json())[0] || {}).household_id : null;
   const hr = await supabaseAdmin(env, 'households', { method: 'POST', body: '{}' });
   if (!hr.ok) return null;
   const rows = await hr.json();
   const hid = rows[0] && rows[0].id;
   if (!hid) return null;
   await supabaseAdmin(env, 'profiles?id=eq.' + userId, { method: 'PATCH', headers: { 'Prefer': 'return=minimal' }, body: JSON.stringify({ household_id: hid, role: 'admin' }) });
+  if (oldHid && oldHid !== hid) { try {
+    const leftR = await supabaseAdmin(env, 'profiles?household_id=eq.' + oldHid + '&select=id', {});
+    const left = leftR.ok ? await leftR.json() : [{}];
+    if (left.length === 0) {
+      for (const t of ['meal_plans', 'recipes', 'shopping_history', 'invitations'])
+        await supabaseAdmin(env, t + '?household_id=eq.' + oldHid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      await supabaseAdmin(env, 'households?id=eq.' + oldHid, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      await env.KV.delete('h:' + oldHid + ':state');
+      await env.KV.delete('h:' + oldHid + ':sbmigrated');
+    }
+  } catch (e) {} }
   return hid;
 }
 
